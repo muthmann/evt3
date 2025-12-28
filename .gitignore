@@ -1,0 +1,50 @@
+# Rust build artifacts
+/target/
+Cargo.lock
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Test outputs (generated during tests)
+test_data/output*.csv
+test_data/output*.bin
+
+# Large test files (download separately or use Git LFS)
+# Keep small synthetic test files, exclude large recordings
+test_data/*.raw
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+.eggs/
+*.so
+.venv/
+venv/
+.python-version
+
+# Maturin
+evt3-python/target/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+*~
+\#*\#
+.#*
+
+# Coverage
+*.profraw
+lcov.info
+coverage/
+
+# Benchmark results (regenerate locally)
+target/criterion/

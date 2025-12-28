@@ -1,0 +1,23 @@
+[workspace]
+resolver = "2"
+members = [
+    "evt3-core",
+    "evt3-cli",
+    "evt3-python",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["Uthmann <muthmann@users.noreply.github.com>"]
+license = "MIT"
+repository = "https://github.com/muthmann/evt3"
+homepage = "https://github.com/muthmann/evt3"
+description = "High-performance EVT 3.0 raw data decoder for Prophesee event cameras"
+readme = "README.md"
+keywords = ["event-camera", "evt3", "prophesee", "decoder", "neuromorphic"]
+categories = ["parser-implementations", "encoding", "science"]
+
+[workspace.dependencies]
+thiserror = "1.0"
+byteorder = "1.5"

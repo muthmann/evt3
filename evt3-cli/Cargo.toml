@@ -1,0 +1,21 @@
+[package]
+name = "evt3-cli"
+version = "0.1.0"
+edition = "2021"
+authors = ["Uthmann <muthmann@users.noreply.github.com>"]
+license = "MIT"
+description = "CLI tool for decoding EVT 3.0 raw files from Prophesee event cameras"
+readme = "../README.md"
+repository = "https://github.com/muthmann/evt3"
+keywords = ["event-camera", "evt3", "prophesee", "cli", "decoder"]
+categories = ["command-line-utilities", "parser-implementations"]
+
+[[bin]]
+name = "evt3"
+path = "src/main.rs"
+
+[dependencies]
+evt3-core = { path = "../evt3-core" }
+clap = { version = "4.4", features = ["derive"] }
+indicatif = "0.17"
+anyhow = "1.0"

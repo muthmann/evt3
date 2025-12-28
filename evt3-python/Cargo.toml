@@ -1,0 +1,16 @@
+[package]
+name = "evt3-python"
+version = "0.1.0"
+edition = "2021"
+authors = ["Uthmann <muthmann@users.noreply.github.com>"]
+license = "MIT"
+description = "Python bindings for EVT 3.0 decoder with zero-copy numpy support"
+
+[lib]
+name = "evt3"
+crate-type = ["cdylib"]
+
+[dependencies]
+evt3-core = { path = "../evt3-core" }
+pyo3 = { version = "0.20", features = ["extension-module"] }
+numpy = "0.20"
