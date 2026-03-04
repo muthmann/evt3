@@ -2,7 +2,7 @@
 name = "evt3-python"
 version = "0.1.0"
 edition = "2021"
-authors = ["Uthmann <muthmann@users.noreply.github.com>"]
+authors = ["Mika Uthmann <muthmann@physik.uni-bielefeld.de>"]
 license = "MIT"
 description = "Python bindings for EVT 3.0 decoder with zero-copy numpy support"
 

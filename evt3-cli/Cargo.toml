@@ -2,12 +2,13 @@
 name = "evt3-cli"
 version = "0.1.0"
 edition = "2021"
-authors = ["Uthmann <muthmann@users.noreply.github.com>"]
+authors = ["Mika Uthmann <muthmann@physik.uni-bielefeld.de>"]
 license = "MIT"
 description = "CLI tool for decoding EVT 3.0 raw files from Prophesee event cameras"
 readme = "../README.md"
+homepage = "https://github.com/muthmann/evt3"
 repository = "https://github.com/muthmann/evt3"
-keywords = ["event-camera", "evt3", "prophesee", "cli", "decoder"]
+keywords = ["event-camera", "event-based-camera", "evt3", "prophesee", "cli", "decoder"]
 categories = ["command-line-utilities", "parser-implementations"]
 
 [[bin]]
