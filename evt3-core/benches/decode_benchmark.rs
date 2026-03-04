@@ -4,19 +4,39 @@
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion, Throughput};
 use evt3_core::Evt3Decoder;
-use std::path::Path;
+use std::path::PathBuf;
 
-const TEST_FILE: &str = "test_data/laser.raw";
+const TEST_FILE_CANDIDATES: [&str; 2] = ["test_data/laser.raw", "../test_data/laser.raw"];
 
-fn decode_file_benchmark(c: &mut Criterion) {
-    let test_path = Path::new(TEST_FILE);
-    if !test_path.exists() {
-        eprintln!("Benchmark skipped: test file not found at {}", TEST_FILE);
-        return;
+fn synthetic_bytes() -> Vec<u8> {
+    let mut data = Vec::new();
+
+    // Generate 100k synthetic events worth of data.
+    for i in 0..100_000 {
+        data.extend_from_slice(&0x8000u16.to_le_bytes());
+        data.extend_from_slice(&((0x6000 | (i & 0x0FFF)) as u16).to_le_bytes());
+        data.extend_from_slice(&((i & 0x07FF) as u16).to_le_bytes());
+        data.extend_from_slice(&(0x2800u16 | ((i * 3) & 0x07FF) as u16).to_le_bytes());
     }
 
+    data
+}
+
+fn decode_file_benchmark(c: &mut Criterion) {
+    let Some(test_path) = TEST_FILE_CANDIDATES
+        .iter()
+        .map(PathBuf::from)
+        .find(|path| path.exists())
+    else {
+        eprintln!(
+            "Benchmark skipped: test file not found in {:?}",
+            TEST_FILE_CANDIDATES
+        );
+        return;
+    };
+
     // Get file size for throughput calculation
-    let file_size = std::fs::metadata(test_path).unwrap().len();
+    let file_size = std::fs::metadata(&test_path).unwrap().len();
 
     let mut group = c.benchmark_group("decode_file");
     group.throughput(Throughput::Bytes(file_size));
@@ -24,7 +44,7 @@ fn decode_file_benchmark(c: &mut Criterion) {
     group.bench_function("full_file", |b| {
         b.iter(|| {
             let mut decoder = Evt3Decoder::new();
-            let result = decoder.decode_file(black_box(test_path)).unwrap();
+            let result = decoder.decode_file(black_box(&test_path)).unwrap();
             black_box(result.cd_events.len())
         })
     });
@@ -33,20 +53,7 @@ fn decode_file_benchmark(c: &mut Criterion) {
 }
 
 fn decode_buffer_benchmark(c: &mut Criterion) {
-    // Create synthetic data for buffer decoding
-    let mut data = Vec::new();
-
-    // Generate 1M synthetic events worth of data
-    for i in 0..100_000 {
-        // TIME_HIGH
-        data.extend_from_slice(&0x8000u16.to_le_bytes());
-        // TIME_LOW
-        data.extend_from_slice(&((0x6000 | (i & 0xFFF)) as u16).to_le_bytes());
-        // ADDR_Y
-        data.extend_from_slice(&((i & 0x7FF) as u16).to_le_bytes());
-        // ADDR_X with polarity
-        data.extend_from_slice(&(0x2800u16 | ((i * 3) & 0x7FF) as u16).to_le_bytes());
-    }
+    let data = synthetic_bytes();
 
     let words: Vec<u16> = data
         .chunks_exact(2)
@@ -69,5 +76,53 @@ fn decode_buffer_benchmark(c: &mut Criterion) {
     group.finish();
 }
 
-criterion_group!(benches, decode_file_benchmark, decode_buffer_benchmark);
+fn decode_bytes_benchmark(c: &mut Criterion) {
+    let data = synthetic_bytes();
+
+    let mut group = c.benchmark_group("decode_bytes");
+    group.throughput(Throughput::Bytes(data.len() as u64));
+
+    group.bench_function("even_chunks", |b| {
+        b.iter(|| {
+            let mut decoder = Evt3Decoder::new();
+            let mut cd_events = Vec::new();
+            let mut trigger_events = Vec::new();
+
+            for chunk in data.chunks(8192) {
+                decoder
+                    .decode_bytes(black_box(chunk), &mut cd_events, &mut trigger_events)
+                    .unwrap();
+            }
+
+            decoder.finish_stream().unwrap();
+            black_box(cd_events.len())
+        })
+    });
+
+    group.bench_function("irregular_chunks", |b| {
+        b.iter(|| {
+            let mut decoder = Evt3Decoder::new();
+            let mut cd_events = Vec::new();
+            let mut trigger_events = Vec::new();
+
+            for chunk in data.chunks(4095) {
+                decoder
+                    .decode_bytes(black_box(chunk), &mut cd_events, &mut trigger_events)
+                    .unwrap();
+            }
+
+            decoder.finish_stream().unwrap();
+            black_box(cd_events.len())
+        })
+    });
+
+    group.finish();
+}
+
+criterion_group!(
+    benches,
+    decode_file_benchmark,
+    decode_buffer_benchmark,
+    decode_bytes_benchmark
+);
 criterion_main!(benches);

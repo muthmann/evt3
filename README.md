@@ -150,6 +150,31 @@ for event in result.cd_events.iter().take(10) {
 }
 ```
 
+For live camera pipelines or embedded integrations, you can stream raw USB
+packet bytes directly into the decoder without converting to `Vec<u16>` first:
+
+```rust
+use evt3_core::Evt3Decoder;
+
+let mut decoder = Evt3Decoder::new();
+let mut cd_events = Vec::new();
+let mut trigger_events = Vec::new();
+
+for chunk in usb_packet_chunks {
+    decoder.decode_bytes(chunk, &mut cd_events, &mut trigger_events)?;
+}
+
+decoder.finish_stream()?;
+```
+
+This keeps `evt3-core` usable in incremental preview paths while preserving the
+existing file and word-based APIs.
+
+Notes:
+- `decode_buffer` still expects 16-bit EVT3 words, not raw bytes.
+- `decode_bytes` expects little-endian EVT3 payload bytes and can be called with odd-sized chunks.
+- Call `finish_stream()` only when the stream is complete so a trailing half-word is reported as an error instead of being buffered for the next chunk.
+
 ## Benchmarks
 
 Tested on Apple M1 with `laser.raw` (325MB, 116M events):

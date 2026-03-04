@@ -4,10 +4,10 @@
 //! used by Prophesee event cameras. It supports decoding CD (Change Detection) events
 //! and external trigger events.
 //!
-//! # Example
+//! # File decode
 //!
 //! ```no_run
-//! use evt3_core::decoder::Evt3Decoder;
+//! use evt3_core::Evt3Decoder;
 //!
 //! let mut decoder = Evt3Decoder::new();
 //! let result = decoder.decode_file("recording.raw").unwrap();
@@ -16,13 +16,34 @@
 //! println!("Sensor: {}x{}", result.metadata.width, result.metadata.height);
 //! ```
 //!
+//! # Streaming bytes
+//!
+//! ```no_run
+//! use evt3_core::Evt3Decoder;
+//!
+//! let mut decoder = Evt3Decoder::new();
+//! let mut cd_events = Vec::new();
+//! let mut trigger_events = Vec::new();
+//!
+//! let chunk1: &[u8] = &[];
+//! let chunk2: &[u8] = &[];
+//!
+//! decoder
+//!     .decode_bytes(chunk1, &mut cd_events, &mut trigger_events)
+//!     .unwrap();
+//! decoder
+//!     .decode_bytes(chunk2, &mut cd_events, &mut trigger_events)
+//!     .unwrap();
+//! decoder.finish_stream().unwrap();
+//! ```
+//!
 //! # Features
 //!
 //! - Full EVT 3.0 specification support including vectorized events
 //! - File header parsing for sensor metadata
 //! - Multiple output formats (CSV, binary, Arrow IPC)
 //! - Customizable field ordering for output
-//! - Zero-copy buffer decoding for streaming use cases
+//! - Incremental byte-stream decoding for live camera pipelines
 
 pub mod decoder;
 pub mod output;

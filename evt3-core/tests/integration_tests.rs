@@ -4,22 +4,81 @@
 //! Run with: cargo test --test integration_tests
 
 use evt3_core::{output, Evt3Decoder, FieldOrder};
-use std::path::Path;
+use std::fs::File;
+use std::io::{BufRead, BufReader, Read, Seek, SeekFrom};
+use std::path::{Path, PathBuf};
 
-const TEST_FILE: &str = "test_data/laser.raw";
+const TEST_FILE_CANDIDATES: [&str; 2] = ["test_data/laser.raw", "../test_data/laser.raw"];
+
+fn test_file_path() -> Option<PathBuf> {
+    TEST_FILE_CANDIDATES
+        .iter()
+        .map(PathBuf::from)
+        .find(|path| path.exists())
+}
+
+fn open_payload_reader(test_path: &Path) -> (BufReader<File>, usize) {
+    let file = File::open(test_path).expect("Failed to open test file");
+    let mut reader = BufReader::new(file);
+
+    loop {
+        let bytes_peeked = reader.fill_buf().expect("Failed to peek test file");
+        if bytes_peeked.is_empty() || bytes_peeked[0] != b'%' {
+            break;
+        }
+
+        let mut line = String::new();
+        reader
+            .read_line(&mut line)
+            .expect("Failed to read test file header");
+
+        if line.starts_with("% end") {
+            break;
+        }
+    }
+
+    let payload_offset = reader
+        .stream_position()
+        .expect("Failed to determine payload offset") as usize;
+    let file_size = std::fs::metadata(test_path)
+        .expect("Failed to stat test file")
+        .len() as usize;
+    let mut payload_len = file_size - payload_offset;
+
+    if payload_len % 2 == 1 {
+        reader
+            .seek(SeekFrom::End(-1))
+            .expect("Failed to seek to payload tail");
+        let mut tail = [0u8; 1];
+        reader
+            .read_exact(&mut tail)
+            .expect("Failed to read payload tail");
+        reader
+            .seek(SeekFrom::Start(payload_offset as u64))
+            .expect("Failed to rewind payload reader");
+
+        if matches!(tail[0], b'\n' | b'\r') {
+            payload_len -= 1;
+        }
+    }
+
+    (reader, payload_len)
+}
 
 /// Test that the decoder can successfully decode a real EVT3 file.
 #[test]
 fn test_decode_real_file() {
-    let test_path = Path::new(TEST_FILE);
-    if !test_path.exists() {
-        eprintln!("Skipping test: test file not found at {}", TEST_FILE);
+    let Some(test_path) = test_file_path() else {
+        eprintln!(
+            "Skipping test: test file not found in {:?}",
+            TEST_FILE_CANDIDATES
+        );
         return;
-    }
+    };
 
     let mut decoder = Evt3Decoder::new();
     let result = decoder
-        .decode_file(test_path)
+        .decode_file(&test_path)
         .expect("Failed to decode file");
 
     // Verify metadata was parsed correctly
@@ -43,15 +102,17 @@ fn test_decode_real_file() {
 /// Test that timestamps are monotonically increasing (accounting for loops).
 #[test]
 fn test_timestamps_monotonic() {
-    let test_path = Path::new(TEST_FILE);
-    if !test_path.exists() {
-        eprintln!("Skipping test: test file not found at {}", TEST_FILE);
+    let Some(test_path) = test_file_path() else {
+        eprintln!(
+            "Skipping test: test file not found in {:?}",
+            TEST_FILE_CANDIDATES
+        );
         return;
-    }
+    };
 
     let mut decoder = Evt3Decoder::new();
     let result = decoder
-        .decode_file(test_path)
+        .decode_file(&test_path)
         .expect("Failed to decode file");
 
     // Check that timestamps are non-decreasing
@@ -72,15 +133,17 @@ fn test_timestamps_monotonic() {
 /// Test that all coordinates are within sensor bounds.
 #[test]
 fn test_coordinates_in_bounds() {
-    let test_path = Path::new(TEST_FILE);
-    if !test_path.exists() {
-        eprintln!("Skipping test: test file not found at {}", TEST_FILE);
+    let Some(test_path) = test_file_path() else {
+        eprintln!(
+            "Skipping test: test file not found in {:?}",
+            TEST_FILE_CANDIDATES
+        );
         return;
-    }
+    };
 
     let mut decoder = Evt3Decoder::new();
     let result = decoder
-        .decode_file(test_path)
+        .decode_file(&test_path)
         .expect("Failed to decode file");
 
     for (i, event) in result.cd_events.iter().enumerate() {
@@ -110,15 +173,17 @@ fn test_coordinates_in_bounds() {
 /// Test different field order outputs.
 #[test]
 fn test_field_order_formats() {
-    let test_path = Path::new(TEST_FILE);
-    if !test_path.exists() {
-        eprintln!("Skipping test: test file not found at {}", TEST_FILE);
+    let Some(test_path) = test_file_path() else {
+        eprintln!(
+            "Skipping test: test file not found in {:?}",
+            TEST_FILE_CANDIDATES
+        );
         return;
-    }
+    };
 
     let mut decoder = Evt3Decoder::new();
     let result = decoder
-        .decode_file(test_path)
+        .decode_file(&test_path)
         .expect("Failed to decode file");
 
     // Take first 10 events for comparison
@@ -149,15 +214,17 @@ fn test_field_order_formats() {
 /// Test binary output format.
 #[test]
 fn test_binary_output() {
-    let test_path = Path::new(TEST_FILE);
-    if !test_path.exists() {
-        eprintln!("Skipping test: test file not found at {}", TEST_FILE);
+    let Some(test_path) = test_file_path() else {
+        eprintln!(
+            "Skipping test: test file not found in {:?}",
+            TEST_FILE_CANDIDATES
+        );
         return;
-    }
+    };
 
     let mut decoder = Evt3Decoder::new();
     let result = decoder
-        .decode_file(test_path)
+        .decode_file(&test_path)
         .expect("Failed to decode file");
 
     // Write to binary
@@ -191,17 +258,19 @@ fn test_binary_output() {
 /// Benchmark-style test to measure throughput.
 #[test]
 fn test_decode_performance() {
-    let test_path = Path::new(TEST_FILE);
-    if !test_path.exists() {
-        eprintln!("Skipping test: test file not found at {}", TEST_FILE);
+    let Some(test_path) = test_file_path() else {
+        eprintln!(
+            "Skipping test: test file not found in {:?}",
+            TEST_FILE_CANDIDATES
+        );
         return;
-    }
+    };
 
     let start = std::time::Instant::now();
 
     let mut decoder = Evt3Decoder::new();
     let result = decoder
-        .decode_file(test_path)
+        .decode_file(&test_path)
         .expect("Failed to decode file");
 
     let duration = start.elapsed();
@@ -220,4 +289,66 @@ fn test_decode_performance() {
         "Performance too slow: {:.0} events/s (expected >5M)",
         events_per_sec
     );
+}
+
+/// Test that chunked byte streaming matches decode_file on a real .raw file.
+#[test]
+fn test_decode_bytes_matches_decode_file_on_real_file() {
+    let Some(test_path) = test_file_path() else {
+        eprintln!(
+            "Skipping test: test file not found in {:?}",
+            TEST_FILE_CANDIDATES
+        );
+        return;
+    };
+
+    let mut baseline_decoder = Evt3Decoder::new();
+    let baseline = baseline_decoder
+        .decode_file(&test_path)
+        .expect("Failed to decode baseline file");
+
+    let (mut reader, mut payload_bytes_remaining) = open_payload_reader(&test_path);
+    let mut streaming_decoder = Evt3Decoder::new();
+    let mut streamed_cd_events = Vec::new();
+    let mut streamed_trigger_events = Vec::new();
+    let mut buffer = vec![0u8; 4095];
+    let mut cd_offset = 0usize;
+    let mut trigger_offset = 0usize;
+
+    while payload_bytes_remaining > 0 {
+        let chunk_len = buffer.len().min(payload_bytes_remaining);
+        let bytes_read = reader
+            .read(&mut buffer[..chunk_len])
+            .expect("Failed to read payload");
+        if bytes_read == 0 {
+            break;
+        }
+        payload_bytes_remaining -= bytes_read;
+
+        streaming_decoder
+            .decode_bytes(
+                &buffer[..bytes_read],
+                &mut streamed_cd_events,
+                &mut streamed_trigger_events,
+            )
+            .expect("Failed to stream-decode payload");
+
+        let expected_cd = &baseline.cd_events[cd_offset..cd_offset + streamed_cd_events.len()];
+        assert_eq!(streamed_cd_events, expected_cd);
+        cd_offset += streamed_cd_events.len();
+        streamed_cd_events.clear();
+
+        let expected_triggers = &baseline.trigger_events
+            [trigger_offset..trigger_offset + streamed_trigger_events.len()];
+        assert_eq!(streamed_trigger_events, expected_triggers);
+        trigger_offset += streamed_trigger_events.len();
+        streamed_trigger_events.clear();
+    }
+
+    streaming_decoder
+        .finish_stream()
+        .expect("Streaming decoder ended on a dangling half-word");
+
+    assert_eq!(cd_offset, baseline.cd_events.len());
+    assert_eq!(trigger_offset, baseline.trigger_events.len());
 }

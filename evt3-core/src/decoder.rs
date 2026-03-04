@@ -49,6 +49,10 @@ pub struct Evt3Decoder {
     current_base_x: u16,
     current_polarity: u8,
 
+    // Byte-stream state
+    pending_byte: Option<u8>,
+    word_scratch: Vec<u16>,
+
     // Metadata
     pub metadata: SensorMetadata,
 }
@@ -71,11 +75,17 @@ impl Evt3Decoder {
             current_y: 0,
             current_base_x: 0,
             current_polarity: 0,
+            pending_byte: None,
+            word_scratch: Vec::new(),
             metadata: SensorMetadata::default(),
         }
     }
 
     /// Resets the decoder state.
+    ///
+    /// This clears the incremental event-decoding state and any buffered byte
+    /// carried across [`Self::decode_bytes`] calls. Parsed metadata is left
+    /// unchanged.
     pub fn reset(&mut self) {
         self.time_base = 0;
         self.time_low = 0;
@@ -85,11 +95,14 @@ impl Evt3Decoder {
         self.current_y = 0;
         self.current_base_x = 0;
         self.current_polarity = 0;
+        self.pending_byte = None;
+        self.word_scratch.clear();
     }
 
     /// Decodes a buffer of 16-bit words into CD and trigger events.
     ///
-    /// This is the core decoding function that processes raw EVT 3.0 data.
+    /// This is the core decoding function that processes raw EVT 3.0 words.
+    /// Use [`Self::decode_bytes`] for raw byte streams.
     pub fn decode_buffer(
         &mut self,
         words: &[u16],
@@ -171,6 +184,68 @@ impl Evt3Decoder {
         }
     }
 
+    /// Decodes raw little-endian EVT 3.0 bytes into CD and trigger events.
+    ///
+    /// This method is incremental and stateful. It accepts arbitrary chunk
+    /// boundaries, including odd-length chunks, and buffers a trailing byte
+    /// until the next call or [`Self::finish_stream`].
+    pub fn decode_bytes(
+        &mut self,
+        bytes: &[u8],
+        cd_events: &mut Vec<CdEvent>,
+        trigger_events: &mut Vec<TriggerEvent>,
+    ) -> Result<(), DecodeError> {
+        let mut scratch = std::mem::take(&mut self.word_scratch);
+        scratch.clear();
+
+        let mut remaining = bytes;
+
+        if let Some(pending) = self.pending_byte.take() {
+            if let Some((&next, rest)) = remaining.split_first() {
+                scratch.push(u16::from_le_bytes([pending, next]));
+                remaining = rest;
+            } else {
+                self.pending_byte = Some(pending);
+            }
+        }
+
+        let mut chunks = remaining.chunks_exact(2);
+        scratch.extend(
+            chunks
+                .by_ref()
+                .map(|chunk| u16::from_le_bytes([chunk[0], chunk[1]])),
+        );
+
+        if let Some(&last) = chunks.remainder().first() {
+            self.pending_byte = Some(last);
+        }
+
+        self.decode_buffer(&scratch, cd_events, trigger_events);
+        self.word_scratch = scratch;
+
+        Ok(())
+    }
+
+    /// Finalizes a byte stream previously fed through [`Self::decode_bytes`].
+    ///
+    /// Call this only when the input stream is known to be complete. It returns
+    /// [`DecodeError::UnexpectedEof`] if a single trailing byte is still
+    /// buffered.
+    pub fn finish_stream(&mut self) -> Result<(), DecodeError> {
+        if self.pending_byte.take().is_some() {
+            return Err(DecodeError::UnexpectedEof);
+        }
+
+        Ok(())
+    }
+
+    #[inline]
+    fn discard_trailing_file_padding(&mut self) {
+        if matches!(self.pending_byte, Some(b'\n' | b'\r')) {
+            self.pending_byte = None;
+        }
+    }
+
     /// Processes TIME_HIGH events with loop detection.
     #[inline]
     fn process_time_high(&mut self, word: u16) {
@@ -230,14 +305,15 @@ impl Evt3Decoder {
                 break;
             }
 
-            // Convert bytes to u16 words (little-endian)
-            let words: Vec<u16> = buffer[..bytes_read]
-                .chunks_exact(2)
-                .map(|chunk| u16::from_le_bytes([chunk[0], chunk[1]]))
-                .collect();
-
-            self.decode_buffer(&words, &mut cd_events, &mut trigger_events);
+            self.decode_bytes(&buffer[..bytes_read], &mut cd_events, &mut trigger_events)?;
         }
+
+        // Some recorded .raw files include a trailing newline byte after the
+        // binary payload. Preserve historical file-decoding behavior by
+        // ignoring that single byte here while keeping finish_stream strict for
+        // raw byte-stream callers.
+        self.discard_trailing_file_padding();
+        self.finish_stream()?;
 
         Ok(DecodeResult {
             cd_events,
@@ -324,6 +400,34 @@ impl Evt3Decoder {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::io::Write;
+    use tempfile::NamedTempFile;
+
+    fn sample_words() -> Vec<u16> {
+        vec![
+            0x8000, // TIME_HIGH
+            0x6064, // TIME_LOW: 100
+            0x0032, // ADDR_Y: y=50
+            0x2864, // ADDR_X: x=100, pol=1
+            0xA801, // EXT_TRIGGER: value=1, id=0
+            0x3008, // VECT_BASE_X: x=8, pol=0
+            0x500D, // VECT_8: valid bits at x=8,10,11
+            0x6078, // TIME_LOW: 120
+            0x280C, // ADDR_X: x=12, pol=1
+        ]
+    }
+
+    fn words_to_bytes(words: &[u16]) -> Vec<u8> {
+        words.iter().flat_map(|word| word.to_le_bytes()).collect()
+    }
+
+    fn decode_words(words: &[u16]) -> (Vec<CdEvent>, Vec<TriggerEvent>) {
+        let mut decoder = Evt3Decoder::new();
+        let mut cd_events = Vec::new();
+        let mut trigger_events = Vec::new();
+        decoder.decode_buffer(words, &mut cd_events, &mut trigger_events);
+        (cd_events, trigger_events)
+    }
 
     #[test]
     fn test_decoder_initial_state() {
@@ -410,5 +514,171 @@ mod tests {
         decoder.parse_header_line("% geometry 320x240");
         assert_eq!(decoder.metadata.width, 320);
         assert_eq!(decoder.metadata.height, 240);
+    }
+
+    #[test]
+    fn decode_bytes_matches_decode_buffer_for_simple_sequence() {
+        let words = sample_words();
+        let bytes = words_to_bytes(&words);
+        let (expected_cd, expected_triggers) = decode_words(&words);
+
+        let mut decoder = Evt3Decoder::new();
+        let mut cd_events = Vec::new();
+        let mut trigger_events = Vec::new();
+
+        decoder
+            .decode_bytes(&bytes, &mut cd_events, &mut trigger_events)
+            .unwrap();
+        decoder.finish_stream().unwrap();
+
+        assert_eq!(cd_events, expected_cd);
+        assert_eq!(trigger_events, expected_triggers);
+    }
+
+    #[test]
+    fn decode_bytes_handles_odd_chunk_boundary() {
+        let words = sample_words();
+        let bytes = words_to_bytes(&words);
+        let split = 5;
+        let (expected_cd, expected_triggers) = decode_words(&words);
+
+        let mut decoder = Evt3Decoder::new();
+        let mut cd_events = Vec::new();
+        let mut trigger_events = Vec::new();
+
+        decoder
+            .decode_bytes(&bytes[..split], &mut cd_events, &mut trigger_events)
+            .unwrap();
+        decoder
+            .decode_bytes(&bytes[split..], &mut cd_events, &mut trigger_events)
+            .unwrap();
+        decoder.finish_stream().unwrap();
+
+        assert_eq!(cd_events, expected_cd);
+        assert_eq!(trigger_events, expected_triggers);
+    }
+
+    #[test]
+    fn decode_bytes_handles_multiple_small_chunks() {
+        let words = sample_words();
+        let bytes = words_to_bytes(&words);
+        let chunk_sizes = [1usize, 3, 5, 7];
+        let (expected_cd, expected_triggers) = decode_words(&words);
+
+        let mut decoder = Evt3Decoder::new();
+        let mut cd_events = Vec::new();
+        let mut trigger_events = Vec::new();
+        let mut offset = 0usize;
+        let mut chunk_index = 0usize;
+
+        while offset < bytes.len() {
+            let chunk_size = chunk_sizes[chunk_index % chunk_sizes.len()];
+            let end = (offset + chunk_size).min(bytes.len());
+            decoder
+                .decode_bytes(&bytes[offset..end], &mut cd_events, &mut trigger_events)
+                .unwrap();
+            offset = end;
+            chunk_index += 1;
+        }
+
+        decoder.finish_stream().unwrap();
+
+        assert_eq!(cd_events, expected_cd);
+        assert_eq!(trigger_events, expected_triggers);
+    }
+
+    #[test]
+    fn finish_stream_errors_on_dangling_half_word() {
+        let mut decoder = Evt3Decoder::new();
+        let mut cd_events = Vec::new();
+        let mut trigger_events = Vec::new();
+
+        decoder
+            .decode_bytes(&[0x00], &mut cd_events, &mut trigger_events)
+            .unwrap();
+
+        assert!(matches!(
+            decoder.finish_stream(),
+            Err(DecodeError::UnexpectedEof)
+        ));
+    }
+
+    #[test]
+    fn finish_stream_succeeds_on_even_boundary() {
+        let words = sample_words();
+        let bytes = words_to_bytes(&words);
+        let mut decoder = Evt3Decoder::new();
+        let mut cd_events = Vec::new();
+        let mut trigger_events = Vec::new();
+
+        decoder
+            .decode_bytes(&bytes, &mut cd_events, &mut trigger_events)
+            .unwrap();
+
+        assert!(decoder.finish_stream().is_ok());
+    }
+
+    #[test]
+    fn reset_clears_pending_byte() {
+        let words = sample_words();
+        let bytes = words_to_bytes(&words);
+        let (expected_cd, expected_triggers) = decode_words(&words);
+
+        let mut decoder = Evt3Decoder::new();
+        let mut cd_events = Vec::new();
+        let mut trigger_events = Vec::new();
+
+        decoder
+            .decode_bytes(&bytes[..1], &mut cd_events, &mut trigger_events)
+            .unwrap();
+        decoder.reset();
+        decoder
+            .decode_bytes(&bytes, &mut cd_events, &mut trigger_events)
+            .unwrap();
+        decoder.finish_stream().unwrap();
+
+        assert_eq!(cd_events, expected_cd);
+        assert_eq!(trigger_events, expected_triggers);
+    }
+
+    #[test]
+    fn decode_file_still_decodes_existing_sequences() {
+        let words = sample_words();
+        let bytes = words_to_bytes(&words);
+        let (expected_cd, expected_triggers) = decode_words(&words);
+        let mut file = NamedTempFile::new().unwrap();
+
+        writeln!(file, "% format EVT3;width=640;height=480").unwrap();
+        writeln!(file, "% end").unwrap();
+        file.write_all(&bytes).unwrap();
+        file.flush().unwrap();
+
+        let mut decoder = Evt3Decoder::new();
+        let result = decoder.decode_file(file.path()).unwrap();
+
+        assert_eq!(result.metadata.width, 640);
+        assert_eq!(result.metadata.height, 480);
+        assert_eq!(result.cd_events, expected_cd);
+        assert_eq!(result.trigger_events, expected_triggers);
+    }
+
+    #[test]
+    fn decode_file_ignores_trailing_newline_padding() {
+        let words = sample_words();
+        let bytes = words_to_bytes(&words);
+        let (expected_cd, expected_triggers) = decode_words(&words);
+        let mut file = NamedTempFile::new().unwrap();
+
+        writeln!(file, "% format EVT3;width=640;height=480").unwrap();
+        writeln!(file, "% end").unwrap();
+        file.write_all(&bytes).unwrap();
+        file.write_all(b"\n").unwrap();
+        file.flush().unwrap();
+
+        let mut decoder = Evt3Decoder::new();
+        let result = decoder.decode_file(file.path()).unwrap();
+
+        assert_eq!(result.cd_events, expected_cd);
+        assert_eq!(result.trigger_events, expected_triggers);
     }
 }

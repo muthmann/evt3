@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `evt3-core`: incremental raw-byte decoding via `Evt3Decoder::decode_bytes`
+  and `Evt3Decoder::finish_stream`, including odd-chunk boundary handling for
+  live camera pipelines
+
 ## [0.1.0] - 2024-12-28
 
 ### Added
