@@ -34,8 +34,7 @@ pub(crate) fn decode_hdf5(
 ) -> Result<DecodeResult, DecodeError> {
     let file = File::open(path)?;
 
-    decoder.metadata = parse_geometry(&file)?;
-
+    let metadata = parse_geometry(&file)?;
     let cd_events = read_cd_events(&file)?;
     let trigger_events = read_trigger_events(&file)?;
 
@@ -45,10 +44,11 @@ pub(crate) fn decode_hdf5(
         ));
     }
 
+    decoder.metadata = metadata.clone();
     Ok(DecodeResult {
         cd_events,
         trigger_events,
-        metadata: decoder.metadata.clone(),
+        metadata,
     })
 }
 
@@ -83,45 +83,44 @@ fn parse_geometry_value(geometry: &str) -> Result<SensorMetadata, DecodeError> {
 }
 
 fn read_cd_events(file: &File) -> Result<Vec<CdEvent>, DecodeError> {
-    let dataset = match open_events_dataset(file, "CD")? {
-        Some(dataset) => dataset,
-        None => return Ok(Vec::new()),
+    let Some(dataset) = open_events_dataset(file, "CD")? else {
+        return Ok(Vec::new());
     };
-    let raw_events = dataset.read_1d::<RawCdEvent>()?;
-    let mut cd_events = Vec::with_capacity(raw_events.len());
-
-    for raw in raw_events {
-        cd_events.push(CdEvent::new(
-            raw.x,
-            raw.y,
-            normalize_binary_flag(raw.p),
-            decode_timestamp(raw.t)?,
-        ));
-    }
-
-    Ok(cd_events)
+    dataset
+        .read_1d::<RawCdEvent>()?
+        .into_iter()
+        .map(|raw| {
+            Ok(CdEvent::new(
+                raw.x,
+                raw.y,
+                normalize_binary_flag(raw.p),
+                decode_timestamp(raw.t)?,
+            ))
+        })
+        .collect()
 }
 
 fn read_trigger_events(file: &File) -> Result<Vec<TriggerEvent>, DecodeError> {
-    let dataset = match open_events_dataset(file, "EXT_TRIGGER")? {
-        Some(dataset) => dataset,
-        None => return Ok(Vec::new()),
+    let Some(dataset) = open_events_dataset(file, "EXT_TRIGGER")? else {
+        return Ok(Vec::new());
     };
-    let raw_events = dataset.read_1d::<RawTriggerEvent>()?;
-    let mut trigger_events = Vec::with_capacity(raw_events.len());
-
-    for raw in raw_events {
-        let id = u8::try_from(raw.id).map_err(|_| {
-            DecodeError::InvalidFormat(format!("HDF5 trigger id must fit in u8, got {}", raw.id))
-        })?;
-        trigger_events.push(TriggerEvent::new(
-            normalize_binary_flag(raw.p),
-            id,
-            decode_timestamp(raw.t)?,
-        ));
-    }
-
-    Ok(trigger_events)
+    dataset
+        .read_1d::<RawTriggerEvent>()?
+        .into_iter()
+        .map(|raw| {
+            let id = u8::try_from(raw.id).map_err(|_| {
+                DecodeError::InvalidFormat(format!(
+                    "HDF5 trigger id must fit in u8, got {}",
+                    raw.id
+                ))
+            })?;
+            Ok(TriggerEvent::new(
+                normalize_binary_flag(raw.p),
+                id,
+                decode_timestamp(raw.t)?,
+            ))
+        })
+        .collect()
 }
 
 fn open_events_dataset(
@@ -132,29 +131,23 @@ fn open_events_dataset(
         Ok(group) => group,
         Err(_) => return Ok(None),
     };
-
-    if !group
-        .member_names()?
-        .iter()
-        .any(|member| member == "events")
-    {
-        return Ok(None);
-    }
-
-    Ok(Some(group.dataset("events")?))
+    // dataset() returns Err if "events" is absent; map that to None.
+    Ok(group.dataset("events").ok())
 }
 
+#[inline(always)]
 fn normalize_binary_flag(flag: i16) -> u8 {
     u8::from(flag > 0)
 }
 
+#[inline]
 fn decode_timestamp(timestamp: i64) -> Result<u64, DecodeError> {
-    u64::try_from(timestamp).map_err(|_| {
-        DecodeError::InvalidFormat(format!(
-            "HDF5 event timestamp must be non-negative, got {}",
-            timestamp
-        ))
-    })
+    if timestamp < 0 {
+        return Err(DecodeError::InvalidFormat(format!(
+            "HDF5 event timestamp must be non-negative, got {timestamp}"
+        )));
+    }
+    Ok(timestamp as u64)
 }
 
 #[cfg(test)]

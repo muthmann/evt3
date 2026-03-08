@@ -53,13 +53,15 @@ struct TestCdEventRow {
     t: i64,
 }
 
+// Field order matches RawTriggerEvent in hdf5_decoder.rs (verified via h5py):
+// p @ 0, t @ 8, id @ 16, itemsize = 24.
 #[cfg(feature = "hdf5")]
 #[derive(H5Type, Clone, Debug)]
 #[repr(C)]
 struct TestTriggerEventRow {
     p: i16,
-    id: i16,
     t: i64,
+    id: i16,
 }
 
 #[cfg(feature = "hdf5")]
@@ -317,11 +319,31 @@ fn test_hdf5_decode_requires_events_dataset() {
 }
 
 /// Returns true when an HDF5 decode error is caused by a missing compression
-/// plugin (e.g. Prophesee ECF codec). Real-data tests skip in that case.
+/// plugin (e.g. the Prophesee ECF codec). Real-data tests skip in that case.
 #[cfg(feature = "hdf5")]
 fn is_missing_plugin(err: &evt3_core::DecodeError) -> bool {
     let msg = err.to_string();
-    msg.contains("plugin") || msg.contains("filter")
+    // Match HDF5 library messages specifically about missing/unloadable plugins.
+    // Avoid matching "filter" alone — too broad.
+    msg.contains("plugin") || msg.contains("can't find plugin") || msg.contains("no filter")
+}
+
+/// Decode `path` as an HDF5 file, skipping on missing plugin.
+/// Returns `None` (and prints a `[SKIP]` line) if the ECF plugin is absent.
+/// Panics on any other error.
+#[cfg(feature = "hdf5")]
+fn decode_hdf5_or_skip(test_name: &str, path: &std::path::Path) -> Option<evt3_core::DecodeResult> {
+    match Evt3Decoder::new().decode_file(path) {
+        Ok(r) => Some(r),
+        Err(ref e) if is_missing_plugin(e) => {
+            print_skip(
+                test_name,
+                &format!("ECF plugin not installed ({e}). See docs/features/hdf5-file-support.md."),
+            );
+            None
+        }
+        Err(e) => panic!("Failed to decode {}: {e}", path.display()),
+    }
 }
 
 /// Real-data HDF5 tests — skip gracefully when laser.hdf5 is not present or
@@ -332,25 +354,15 @@ fn is_missing_plugin(err: &evt3_core::DecodeError) -> bool {
 #[cfg(feature = "hdf5")]
 fn test_hdf5_real_file_decode() {
     let Some(h5_path) = hdf5_test_file_path() else {
-        let reason = format!(
-            "laser.hdf5 not found in {:?}. See evt3-core/test_data/README.md for download instructions.",
+        print_skip("test_hdf5_real_file_decode", &format!(
+            "laser.hdf5 not found in {:?}. See evt3-core/test_data/README.md.",
             HDF5_FILE_CANDIDATES
-        );
-        print_skip("test_hdf5_real_file_decode", &reason);
+        ));
         return;
     };
 
-    let mut decoder = Evt3Decoder::new();
-    let result = match decoder.decode_file(&h5_path) {
-        Ok(r) => r,
-        Err(ref e) if is_missing_plugin(e) => {
-            let reason = format!(
-                "ECF plugin not installed ({e}). See docs/features/hdf5-file-support.md for installation instructions."
-            );
-            print_skip("test_hdf5_real_file_decode", &reason);
-            return;
-        }
-        Err(e) => panic!("Failed to decode laser.hdf5: {e}"),
+    let Some(result) = decode_hdf5_or_skip("test_hdf5_real_file_decode", &h5_path) else {
+        return;
     };
 
     assert_eq!(result.metadata.width, 1280);
@@ -378,16 +390,8 @@ fn test_hdf5_real_file_matches_raw() {
     };
 
     let raw = Evt3Decoder::new().decode_file(&raw_path).unwrap();
-    let h5 = match Evt3Decoder::new().decode_file(&h5_path) {
-        Ok(r) => r,
-        Err(ref e) if is_missing_plugin(e) => {
-            let reason = format!(
-                "ECF plugin not installed ({e}). See docs/features/hdf5-file-support.md for installation instructions."
-            );
-            print_skip("test_hdf5_real_file_matches_raw", &reason);
-            return;
-        }
-        Err(e) => panic!("Failed to decode laser.hdf5: {e}"),
+    let Some(h5) = decode_hdf5_or_skip("test_hdf5_real_file_matches_raw", &h5_path) else {
+        return;
     };
 
     assert_eq!(
@@ -403,24 +407,15 @@ fn test_hdf5_real_file_matches_raw() {
 #[cfg(feature = "hdf5")]
 fn test_hdf5_real_file_timestamps_monotonic() {
     let Some(h5_path) = hdf5_test_file_path() else {
-        let reason = format!(
-            "laser.hdf5 not found in {:?}. See evt3-core/test_data/README.md for download instructions.",
+        print_skip("test_hdf5_real_file_timestamps_monotonic", &format!(
+            "laser.hdf5 not found in {:?}. See evt3-core/test_data/README.md.",
             HDF5_FILE_CANDIDATES
-        );
-        print_skip("test_hdf5_real_file_timestamps_monotonic", &reason);
+        ));
         return;
     };
 
-    let result = match Evt3Decoder::new().decode_file(&h5_path) {
-        Ok(r) => r,
-        Err(ref e) if is_missing_plugin(e) => {
-            let reason = format!(
-                "ECF plugin not installed ({e}). See docs/features/hdf5-file-support.md for installation instructions."
-            );
-            print_skip("test_hdf5_real_file_timestamps_monotonic", &reason);
-            return;
-        }
-        Err(e) => panic!("Failed to decode laser.hdf5: {e}"),
+    let Some(result) = decode_hdf5_or_skip("test_hdf5_real_file_timestamps_monotonic", &h5_path) else {
+        return;
     };
     let mut last_time = 0u64;
     for (i, event) in result.cd_events.iter().enumerate() {
@@ -439,24 +434,15 @@ fn test_hdf5_real_file_timestamps_monotonic() {
 #[cfg(feature = "hdf5")]
 fn test_hdf5_real_file_coordinates_in_bounds() {
     let Some(h5_path) = hdf5_test_file_path() else {
-        let reason = format!(
-            "laser.hdf5 not found in {:?}. See evt3-core/test_data/README.md for download instructions.",
+        print_skip("test_hdf5_real_file_coordinates_in_bounds", &format!(
+            "laser.hdf5 not found in {:?}. See evt3-core/test_data/README.md.",
             HDF5_FILE_CANDIDATES
-        );
-        print_skip("test_hdf5_real_file_coordinates_in_bounds", &reason);
+        ));
         return;
     };
 
-    let result = match Evt3Decoder::new().decode_file(&h5_path) {
-        Ok(r) => r,
-        Err(ref e) if is_missing_plugin(e) => {
-            let reason = format!(
-                "ECF plugin not installed ({e}). See docs/features/hdf5-file-support.md for installation instructions."
-            );
-            print_skip("test_hdf5_real_file_coordinates_in_bounds", &reason);
-            return;
-        }
-        Err(e) => panic!("Failed to decode laser.hdf5: {e}"),
+    let Some(result) = decode_hdf5_or_skip("test_hdf5_real_file_coordinates_in_bounds", &h5_path) else {
+        return;
     };
     for (i, event) in result.cd_events.iter().enumerate() {
         assert!(
