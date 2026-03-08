@@ -65,6 +65,9 @@ Or with pip:
 pip install evt3
 ```
 
+> **Note:** The pip package supports `.raw` files only. HDF5 (`.h5`/`.hdf5`)
+> requires building from source — see [HDF5 Inputs](#hdf5-inputs) below.
+
 ### Build from Source
 
 ```bash
@@ -183,14 +186,39 @@ Notes:
 
 ### HDF5 Inputs
 
+> **Important:** HDF5 support requires `libhdf5` (a native C library) and is
+> **not included** in `pip install evt3` or pre-built CLI binaries. It must be
+> built from source. See [docs/features/hdf5-file-support.md](docs/features/hdf5-file-support.md)
+> for the full limitations table.
+
 ```bash
-HDF5_DIR="$(brew --prefix hdf5)" cargo run -p evt3-cli --features hdf5 -- recording.h5 events.csv
+# macOS
+brew install hdf5
+HDF5_DIR="$(brew --prefix hdf5)" cargo build --release -p evt3-cli --features hdf5
+./target/release/evt3 recording.h5 events.csv
+
+# Ubuntu / Debian
+sudo apt install libhdf5-dev
+cargo build --release -p evt3-cli --features hdf5
+./target/release/evt3 recording.h5 events.csv
+```
+
+Most Prophesee HDF5 files use the ECF compression codec, which requires an
+additional runtime plugin:
+
+```bash
+# Build and install the ECF plugin (one-time, macOS/Linux/Windows)
+./scripts/install-ecf-plugin.sh
+
+# Then set the plugin path before running
+export HDF5_PLUGIN_PATH="$HOME/.local/share/hdf5/plugin"
+./target/release/evt3 recording.h5 events.csv
 ```
 
 Notes:
-- Builds without `--features hdf5` return `HDF5 input requires building with the 'hdf5' cargo feature`.
-- Real-data integration tests that skip still show as `ok`. Run `cargo test -p evt3-core --features hdf5 -- --show-output` to see `[SKIP]` reasons.
-- Some Prophesee HDF5 files use the ECF codec and require `HDF5_PLUGIN_PATH` at runtime. Build instructions for the standalone plugin repo are in `docs/features/hdf5-file-support.md`.
+- Builds without `--features hdf5` return a clear error rather than silently failing.
+- Real-data integration tests that skip still show as `ok`. Run with `-- --show-output` to see `[SKIP]` reasons.
+- Full plugin and dependency documentation: [docs/features/hdf5-file-support.md](docs/features/hdf5-file-support.md)
 
 ## Benchmarks
 

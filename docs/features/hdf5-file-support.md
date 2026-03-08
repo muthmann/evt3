@@ -10,6 +10,31 @@
 - `.h5` and `.hdf5` inputs are auto-detected by file extension.
 - Builds without the `hdf5` feature fail fast with a clear `InvalidFormat` error instead of silently attempting raw decoding.
 
+## Limitations & Distribution
+
+HDF5 support is **opt-in and requires a native C library** (`libhdf5`). This has
+consequences for each distribution channel:
+
+| Channel | HDF5 available? | Reason |
+|---------|----------------|--------|
+| `pip install evt3` | **No** | `libhdf5` is a system C library that cannot be bundled into a wheel |
+| Pre-built CLI binaries (GitHub Releases) | **No** | Binaries are built without `--features hdf5` |
+| `cargo install evt3-cli` | **No** (default) | Must add `--features hdf5` and have `libhdf5` installed |
+| Build from source | **Yes** | See below |
+| `evt3-core` as a crate dependency | **Yes, opt-in** | Add `features = ["hdf5"]`; requires `libhdf5-dev` at build time |
+
+**Using evt3-core as a dependency with HDF5:**
+
+```toml
+# Cargo.toml
+[dependencies]
+evt3-core = { version = "0.2", features = ["hdf5"] }
+```
+
+Your users must have `libhdf5-dev` installed (`brew install hdf5` /
+`apt install libhdf5-dev`). For ECF-compressed files the runtime ECF plugin
+must also be present — see the ECF Compression Plugin section below.
+
 ## Build And Runtime Requirements
 
 - Native HDF5 development files must be installed.
@@ -28,7 +53,21 @@ The plugin is available as a standalone repository:
 No prebuilt releases are published there, so the plugin must be built from
 source.
 
-### macOS, Linux, and Windows
+### Automated (recommended)
+
+A helper script handles the full clone-build-install flow:
+
+```bash
+./scripts/install-ecf-plugin.sh
+./scripts/install-ecf-plugin.sh --prefix /custom/path
+./scripts/install-ecf-plugin.sh --force
+```
+
+The script auto-detects HDF5 from `HDF5_DIR`, Homebrew, `pkg-config`, or
+`h5cc`, installs the plugin into `~/.local/share/hdf5/plugin/` by default, and
+prints the `export HDF5_PLUGIN_PATH=...` line to add to your shell config.
+
+### Manual
 
 ```bash
 # Requires: CMake 3.14+, a C++14 compiler, and HDF5 development files
