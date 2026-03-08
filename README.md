@@ -119,8 +119,9 @@ evt3 recording.raw events.csv --quiet
 import evt3
 import numpy as np
 
-# Decode a file
+# Decode a .raw or .h5 file — format is auto-detected by extension
 events = evt3.decode_file("recording.raw")
+events = evt3.decode_file("recording.h5")   # requires hdf5 feature at build time
 print(f"Decoded {len(events):,} events")
 print(f"Sensor: {events.sensor_width}x{events.sensor_height}")
 

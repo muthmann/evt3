@@ -20,9 +20,18 @@ use std::str::FromStr;
 use tempfile::NamedTempFile;
 
 const TEST_FILE_CANDIDATES: [&str; 2] = ["test_data/laser.raw", "../test_data/laser.raw"];
+const HDF5_FILE_CANDIDATES: [&str; 2] = ["test_data/laser.h5", "../test_data/laser.h5"];
 
 fn test_file_path() -> Option<PathBuf> {
     TEST_FILE_CANDIDATES
+        .iter()
+        .map(PathBuf::from)
+        .find(|path| path.exists())
+}
+
+#[cfg(feature = "hdf5")]
+fn hdf5_test_file_path() -> Option<PathBuf> {
+    HDF5_FILE_CANDIDATES
         .iter()
         .map(PathBuf::from)
         .find(|path| path.exists())
@@ -297,6 +306,104 @@ fn test_hdf5_decode_requires_events_dataset() {
         .expect_err("Missing event datasets should fail");
 
     assert!(matches!(err, DecodeError::MissingGroup(_)));
+}
+
+/// Real-data HDF5 tests — skip gracefully when laser.h5 is not present.
+/// Download test data with: scripts/download-test-data.sh
+
+#[test]
+#[cfg(feature = "hdf5")]
+fn test_hdf5_real_file_decode() {
+    let Some(h5_path) = hdf5_test_file_path() else {
+        eprintln!("Skipping: laser.h5 not found in {:?}", HDF5_FILE_CANDIDATES);
+        return;
+    };
+
+    let mut decoder = Evt3Decoder::new();
+    let result = decoder
+        .decode_file(&h5_path)
+        .expect("Failed to decode laser.h5");
+
+    assert_eq!(result.metadata.width, 1280);
+    assert_eq!(result.metadata.height, 720);
+    assert!(
+        result.cd_events.len() > 100_000_000,
+        "Expected >100M events, got {}",
+        result.cd_events.len()
+    );
+    let first = &result.cd_events[0];
+    assert!(first.x < 1280);
+    assert!(first.y < 720);
+    assert!(first.polarity <= 1);
+}
+
+#[test]
+#[cfg(feature = "hdf5")]
+fn test_hdf5_real_file_matches_raw() {
+    let (Some(raw_path), Some(h5_path)) = (test_file_path(), hdf5_test_file_path()) else {
+        eprintln!("Skipping: laser.raw or laser.h5 not found");
+        return;
+    };
+
+    let raw = Evt3Decoder::new().decode_file(&raw_path).unwrap();
+    let h5 = Evt3Decoder::new().decode_file(&h5_path).unwrap();
+
+    assert_eq!(
+        raw.cd_events.len(),
+        h5.cd_events.len(),
+        "Event count mismatch between .raw and .h5"
+    );
+    assert_eq!(raw.metadata.width, h5.metadata.width);
+    assert_eq!(raw.metadata.height, h5.metadata.height);
+}
+
+#[test]
+#[cfg(feature = "hdf5")]
+fn test_hdf5_real_file_timestamps_monotonic() {
+    let Some(h5_path) = hdf5_test_file_path() else {
+        eprintln!("Skipping: laser.h5 not found in {:?}", HDF5_FILE_CANDIDATES);
+        return;
+    };
+
+    let result = Evt3Decoder::new().decode_file(&h5_path).unwrap();
+    let mut last_time = 0u64;
+    for (i, event) in result.cd_events.iter().enumerate() {
+        assert!(
+            event.timestamp >= last_time,
+            "Timestamp decreased at event {}: {} -> {}",
+            i,
+            last_time,
+            event.timestamp
+        );
+        last_time = event.timestamp;
+    }
+}
+
+#[test]
+#[cfg(feature = "hdf5")]
+fn test_hdf5_real_file_coordinates_in_bounds() {
+    let Some(h5_path) = hdf5_test_file_path() else {
+        eprintln!("Skipping: laser.h5 not found in {:?}", HDF5_FILE_CANDIDATES);
+        return;
+    };
+
+    let result = Evt3Decoder::new().decode_file(&h5_path).unwrap();
+    for (i, event) in result.cd_events.iter().enumerate() {
+        assert!(
+            event.x < result.metadata.width as u16,
+            "Event {} x={} exceeds width {}",
+            i,
+            event.x,
+            result.metadata.width
+        );
+        assert!(
+            event.y < result.metadata.height as u16,
+            "Event {} y={} exceeds height {}",
+            i,
+            event.y,
+            result.metadata.height
+        );
+    }
 }
 
 /// Test that timestamps are monotonically increasing (accounting for loops).
