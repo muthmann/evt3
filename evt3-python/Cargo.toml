@@ -1,14 +1,19 @@
 [package]
 name = "evt3-python"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 authors = ["Mika Uthmann <muthmann@physik.uni-bielefeld.de>"]
 license = "MIT"
 description = "Python bindings for EVT 3.0 decoder with zero-copy numpy support"
+publish = false
 
 [lib]
 name = "evt3"
 crate-type = ["cdylib"]
+
+[features]
+default = []
+hdf5 = ["evt3-core/hdf5"]
 
 [dependencies]
 evt3-core = { path = "../evt3-core" }

@@ -13,6 +13,7 @@ High-performance EVT 3.0 raw data decoder for [Prophesee](https://www.prophesee.
 - 🚀 **High Performance** - 50M+ events/second, 5.6x faster than C++ reference
 - 📦 **Multiple Interfaces** - CLI tool, Python bindings, Rust library
 - 🐍 **Zero-copy Python** - NumPy array access via PyO3
+- 🧪 **Optional HDF5 Input** - `.h5` and `.hdf5` support behind a cargo feature
 - ✅ **Validated** - Output matches C++ reference implementation exactly
 - 🔧 **Customizable** - Configurable output field order
 
@@ -64,6 +65,9 @@ Or with pip:
 pip install evt3
 ```
 
+> **Note:** The pip package supports `.raw` files only. HDF5 (`.h5`/`.hdf5`)
+> requires building from source — see [HDF5 Inputs](#hdf5-inputs) below.
+
 ### Build from Source
 
 ```bash
@@ -76,6 +80,9 @@ cargo build --release
 
 # The binary is at: ./target/release/evt3
 ./target/release/evt3 recording.raw events.csv
+
+# Optional HDF5 support
+HDF5_DIR="$(brew --prefix hdf5)" cargo build --release -p evt3-cli --features hdf5
 
 # Optional: Install to PATH
 cp target/release/evt3 ~/.local/bin/
@@ -115,8 +122,9 @@ evt3 recording.raw events.csv --quiet
 import evt3
 import numpy as np
 
-# Decode a file
+# Decode a .raw or .h5 file — format is auto-detected by extension
 events = evt3.decode_file("recording.raw")
+events = evt3.decode_file("recording.h5")   # requires hdf5 feature at build time
 print(f"Decoded {len(events):,} events")
 print(f"Sensor: {events.sensor_width}x{events.sensor_height}")
 
@@ -174,6 +182,43 @@ Notes:
 - `decode_buffer` still expects 16-bit EVT3 words, not raw bytes.
 - `decode_bytes` expects little-endian EVT3 payload bytes and can be called with odd-sized chunks.
 - Call `finish_stream()` only when the stream is complete so a trailing half-word is reported as an error instead of being buffered for the next chunk.
+- `.h5` and `.hdf5` decoding is available when the crate or binary is built with the `hdf5` feature.
+
+### HDF5 Inputs
+
+> **Important:** HDF5 support requires `libhdf5` (a native C library) and is
+> **not included** in `pip install evt3` or pre-built CLI binaries. It must be
+> built from source. See [docs/features/hdf5-file-support.md](docs/features/hdf5-file-support.md)
+> for the full limitations table.
+
+```bash
+# macOS
+brew install hdf5
+HDF5_DIR="$(brew --prefix hdf5)" cargo build --release -p evt3-cli --features hdf5
+./target/release/evt3 recording.h5 events.csv
+
+# Ubuntu / Debian
+sudo apt install libhdf5-dev
+cargo build --release -p evt3-cli --features hdf5
+./target/release/evt3 recording.h5 events.csv
+```
+
+Most Prophesee HDF5 files use the ECF compression codec, which requires an
+additional runtime plugin:
+
+```bash
+# Build and install the ECF plugin (one-time, macOS/Linux/Windows)
+./scripts/install-ecf-plugin.sh
+
+# Then set the plugin path before running
+export HDF5_PLUGIN_PATH="$HOME/.local/share/hdf5/plugin"
+./target/release/evt3 recording.h5 events.csv
+```
+
+Notes:
+- Builds without `--features hdf5` return a clear error rather than silently failing.
+- Real-data integration tests that skip still show as `ok`. Run with `-- --show-output` to see `[SKIP]` reasons.
+- Full plugin and dependency documentation: [docs/features/hdf5-file-support.md](docs/features/hdf5-file-support.md)
 
 ## Benchmarks
 

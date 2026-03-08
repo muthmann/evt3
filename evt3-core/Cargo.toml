@@ -1,6 +1,6 @@
 [package]
 name = "evt3-core"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 authors = ["Mika Uthmann <muthmann@physik.uni-bielefeld.de>"]
 license = "MIT"
@@ -11,9 +11,14 @@ repository = "https://github.com/muthmann/evt3"
 keywords = ["event-based-camera", "evt3", "prophesee", "decoder", "neuromorphic"]
 categories = ["parser-implementations", "encoding", "science"]
 
+[features]
+default = []
+hdf5 = ["dep:hdf5"]
+
 [dependencies]
 thiserror = "1.0"
 byteorder = "1.5"
+hdf5 = { package = "hdf5-metno", version = "0.12.3", optional = true }
 
 [dev-dependencies]
 tempfile = "3.10"

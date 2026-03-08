@@ -7,11 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-03-08
+
 ### Added
 
+- `evt3-core`: optional HDF5 input support via the `hdf5` cargo feature —
+  `.h5` and `.hdf5` files are auto-detected by `Evt3Decoder::decode_file`
+  with no API changes required for callers
 - `evt3-core`: incremental raw-byte decoding via `Evt3Decoder::decode_bytes`
   and `Evt3Decoder::finish_stream`, including odd-chunk boundary handling for
   live camera pipelines
+- `evt3-cli`: `hdf5` feature flag propagates HDF5 support to the CLI binary
+- `evt3-python`: `hdf5` feature flag propagates HDF5 support to Python bindings
+
+### Notes
+
+- HDF5 support requires native HDF5 development libraries (`brew install hdf5`
+  on macOS, `apt install libhdf5-dev` on Debian/Ubuntu)
+- Prophesee recordings compressed with the ECF codec additionally require the
+  Metavision HDF5 plugin at `HDF5_PLUGIN_PATH`
 
 ## [0.1.0] - 2024-12-28
 

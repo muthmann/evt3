@@ -12,9 +12,11 @@ Cargo.lock
 test_data/output*.csv
 test_data/output*.bin
 
-# Large test files (download separately or use Git LFS)
+# Large test files (download separately — see scripts/download-test-data.sh)
 # Keep small synthetic test files, exclude large recordings
 test_data/*.raw
+test_data/*.h5
+test_data/*.hdf5
 
 # Python
 __pycache__/
@@ -48,3 +50,6 @@ coverage/
 
 # Benchmark results (regenerate locally)
 target/criterion/
+
+# Local task/session notes
+tasks/
