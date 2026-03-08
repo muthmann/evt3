@@ -48,7 +48,7 @@ dev = [
 features = ["pyo3/extension-module"]
 python-source = "python"
 module-name = "evt3._evt3"
-strip = true
+strip = false
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
