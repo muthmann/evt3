@@ -3,43 +3,62 @@
 # Files are placed in evt3-core/test_data/ and skipped by integration tests
 # when absent, so this script is optional but required for full test coverage.
 #
-# Usage:
-#   ./scripts/download-test-data.sh
+# Usage (automatic, if direct URLs are known):
+#   EVT3_RAW_URL=<url> EVT3_H5_URL=<url> ./scripts/download-test-data.sh
 #
-# The kDrive share link below is a browser share page. To get direct download
-# URLs, open the share link in a browser, right-click each file, and copy the
-# direct download link — then replace the placeholder URLs below.
+# Usage (manual): open the kDrive share page in a browser, download each file,
+# then move them into evt3-core/test_data/:
+#   Share page: https://kdrive.infomaniak.com/app/share/975517/ad8aa115-068e-4f29-9d16-663a7a9b5e02
+#
+# To get curl-able direct URLs from kDrive:
+#   1. Open the share page in your browser
+#   2. Open DevTools → Network tab
+#   3. Click "Download" on the file
+#   4. Copy the URL from the network request that fetches the actual file bytes
+#   5. Set EVT3_RAW_URL / EVT3_H5_URL to those URLs and re-run this script
 
 set -euo pipefail
 
 DEST="$(cd "$(dirname "$0")/.." && pwd)/evt3-core/test_data"
 mkdir -p "$DEST"
 
+download_file() {
+    local url="$1"
+    local dest="$2"
+    local name
+    name="$(basename "$dest")"
+
+    if [[ -f "$dest" ]]; then
+        echo "  $name already exists — skipping"
+        return
+    fi
+
+    echo "  Downloading $name..."
+    curl -fL --progress-bar -o "$dest" "$url"
+    echo "  → $dest"
+}
+
 # ── laser.raw ────────────────────────────────────────────────────────────────
-# Direct download URL for laser.raw (replace with actual URL from kDrive share)
-RAW_URL="${EVT3_RAW_URL:-}"
-if [[ -z "$RAW_URL" ]]; then
-    echo "Set EVT3_RAW_URL to the direct download URL for laser.raw"
-    echo "Share page: https://kdrive.infomaniak.com/app/share/975517/ad8aa115-068e-4f29-9d16-663a7a9b5e02"
+if [[ -n "${EVT3_RAW_URL:-}" ]]; then
+    download_file "$EVT3_RAW_URL" "$DEST/laser.raw"
 else
-    echo "Downloading laser.raw..."
-    curl -fL --progress-bar -o "$DEST/laser.raw" "$RAW_URL"
-    echo "  → $DEST/laser.raw"
+    echo "EVT3_RAW_URL not set — skipping laser.raw"
+    echo "  To get the URL: open the kDrive share page, click Download on laser.raw,"
+    echo "  capture the URL from DevTools → Network, then set EVT3_RAW_URL."
 fi
 
-# ── laser.h5 ─────────────────────────────────────────────────────────────────
-# Direct download URL for laser.h5 (replace with actual URL from kDrive share)
-H5_URL="${EVT3_H5_URL:-}"
-if [[ -z "$H5_URL" ]]; then
-    echo "Set EVT3_H5_URL to the direct download URL for laser.h5"
-    echo "Share page: https://kdrive.infomaniak.com/app/share/975517/ad8aa115-068e-4f29-9d16-663a7a9b5e02"
+# ── laser.hdf5 ───────────────────────────────────────────────────────────────
+if [[ -n "${EVT3_H5_URL:-}" ]]; then
+    download_file "$EVT3_H5_URL" "$DEST/laser.h5"
 else
-    echo "Downloading laser.h5..."
-    curl -fL --progress-bar -o "$DEST/laser.h5" "$H5_URL"
-    echo "  → $DEST/laser.h5"
+    echo "EVT3_H5_URL not set — skipping laser.h5"
+    echo "  To get the URL: open the kDrive share page, click Download on laser.hdf5,"
+    echo "  capture the URL from DevTools → Network, then set EVT3_H5_URL."
 fi
 
 echo ""
-echo "Test data is ready. Run tests with:"
-echo "  cargo test -p evt3-core                         # .raw tests"
-echo "  HDF5_DIR=\$(brew --prefix hdf5) cargo test -p evt3-core --features hdf5  # + HDF5 tests"
+echo "Share page: https://kdrive.infomaniak.com/app/share/975517/ad8aa115-068e-4f29-9d16-663a7a9b5e02"
+echo ""
+echo "Run integration tests:"
+echo "  cargo test -p evt3-core                                                    # .raw tests"
+echo "  HDF5_DIR=\$(brew --prefix hdf5) cargo test -p evt3-core --features hdf5   # + HDF5 tests"
