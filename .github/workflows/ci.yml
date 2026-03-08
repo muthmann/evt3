@@ -45,6 +45,38 @@ jobs:
       - name: Run unit tests
         run: cargo test -p evt3-core --lib
 
+  rust-tests-hdf5:
+    name: Rust Tests (HDF5 feature)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ubuntu-cargo-hdf5-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Install HDF5
+        run: sudo apt-get install -y libhdf5-dev
+
+      - name: Clippy (hdf5 feature)
+        run: cargo clippy -p evt3-core -p evt3-cli --features hdf5 -- -D warnings
+
+      - name: Run unit tests (hdf5 feature)
+        run: cargo test -p evt3-core --lib --features hdf5
+
+      - name: Run integration tests (hdf5 feature, synthetic fixtures only)
+        run: cargo test -p evt3-core --test integration_tests --features hdf5 -- --show-output
+
   python-tests:
     name: Python Tests
     runs-on: ${{ matrix.os }}
