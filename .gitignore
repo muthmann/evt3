@@ -50,3 +50,6 @@ coverage/
 
 # Benchmark results (regenerate locally)
 target/criterion/
+
+# Local task/session notes
+tasks/

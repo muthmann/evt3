@@ -9,7 +9,7 @@ members = [
 [workspace.package]
 version = "0.2.0"
 edition = "2021"
-authors = ["Uthmann <muthmann@users.noreply.github.com>"]
+authors = ["Mika Uthmann <muthmann@physik.uni-bielefeld.de"]
 license = "MIT"
 repository = "https://github.com/muthmann/evt3"
 homepage = "https://github.com/muthmann/evt3"
