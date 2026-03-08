@@ -13,7 +13,7 @@
 ## Notes
 
 - The working tree already contains an unrelated local change in `evt3-core/src/decoder.rs`. Preserve it while applying the HDF5 changes.
-- Replace the external `laser.h5` fixture dependency from the plan with self-generated HDF5 test fixtures so verification stays local and reproducible.
+- Replace the external `laser.hdf5` fixture dependency from the plan with self-generated HDF5 test fixtures so verification stays local and reproducible.
 
 ## Review
 
@@ -30,3 +30,24 @@
   - `HDF5_DIR=/opt/homebrew/opt/hdf5 cargo test -p evt3-core --features hdf5 test_decode_real_file -- --nocapture`
   - `HDF5_DIR=/opt/homebrew/opt/hdf5 cargo check -p evt3-cli --features hdf5`
   - `HDF5_DIR=/opt/homebrew/opt/hdf5 cargo check -p evt3-python --features hdf5`
+
+## Follow-Up: Skip Visibility And Plugin Docs
+
+### Plan
+
+- [x] Make real-data test skips visible under `--show-output` with a consistent `[SKIP]` prefix.
+- [x] Document how skipped tests appear in `evt3-core/test_data/README.md`.
+- [x] Replace the vague ECF plugin note in the HDF5 feature brief with concrete installation and verification steps.
+- [x] Add the `--show-output` guidance to the top-level README HDF5 section.
+- [x] Run verification for skip visibility and the default test suite, then record the results.
+
+### Review
+
+- Added a shared `print_skip` helper and converted the real-data skip paths to `println!` with a `[SKIP]` prefix so they are visible under `cargo test -- --show-output`.
+- Added a file-level note in the integration test module explaining that skipped real-data tests still report `ok` unless `--show-output` is used.
+- Documented skip verification in `evt3-core/test_data/README.md`.
+- Replaced the vague ECF plugin note with concrete standalone `prophesee-ai/hdf5_ecf` build and verification instructions in the HDF5 feature brief.
+- Added a top-level README note that points users at `--show-output` and the detailed plugin guide.
+- Verification results:
+  - `HDF5_DIR=/opt/homebrew/opt/hdf5 cargo test -p evt3-core --features hdf5 test_hdf5_real_file_ -- --show-output`
+  - `cargo test -p evt3-core`

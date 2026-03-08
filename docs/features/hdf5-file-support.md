@@ -14,11 +14,52 @@
 
 - Native HDF5 development files must be installed.
 - On macOS with Homebrew, export `HDF5_DIR="$(brew --prefix hdf5)"` before building with `--features hdf5`.
-- Compressed Prophesee files that use the ECF codec still require the Metavision HDF5 plugin at runtime via `HDF5_PLUGIN_PATH`.
+- Compressed Prophesee files that use the ECF codec still require the HDF5 ECF plugin at runtime via `HDF5_PLUGIN_PATH`.
+
+## ECF Compression Plugin
+
+Prophesee HDF5 files are commonly compressed with the ECF codec (filter
+`0x8ECF`). Without the plugin, HDF5 decoding returns a clear error; the decoder
+itself still works for uncompressed HDF5 files.
+
+The plugin is available as a standalone repository:
+[prophesee-ai/hdf5_ecf](https://github.com/prophesee-ai/hdf5_ecf)
+
+No prebuilt releases are published there, so the plugin must be built from
+source.
+
+### macOS, Linux, and Windows
+
+```bash
+# Requires: CMake 3.14+, a C++14 compiler, and HDF5 development files
+git clone https://github.com/prophesee-ai/hdf5_ecf.git
+cmake -S hdf5_ecf -B hdf5_ecf/build -DCMAKE_BUILD_TYPE=Release \
+  -DHDF5_ROOT="$(brew --prefix hdf5)"
+cmake --build hdf5_ecf/build --parallel
+
+# Point HDF5 at the built plugin directory
+export HDF5_PLUGIN_PATH="$PWD/hdf5_ecf/build/lib/hdf5/plugin"
+```
+
+Notes:
+- The upstream CMake project sets Apple-specific install defaults and exposes
+  `HDF5_ECF_PLUGIN_INSTALL_PATH` if you want a different install location.
+- If you prefer an installed plugin over using the build tree directly, run
+  `cmake --install hdf5_ecf/build` and point `HDF5_PLUGIN_PATH` at the install
+  destination.
+
+### Verifying The Plugin Is Found
+
+```bash
+HDF5_PLUGIN_PATH=/your/plugin/path \
+HDF5_DIR="$(brew --prefix hdf5)" \
+cargo test -p evt3-core --features hdf5 -- --show-output
+```
 
 ## Verification
 
 - `cargo test -p evt3-core test_hdf5_requires_feature -- --nocapture`
 - `HDF5_DIR=/opt/homebrew/opt/hdf5 cargo test -p evt3-core --features hdf5 test_hdf5_ -- --nocapture`
+- `HDF5_DIR=/opt/homebrew/opt/hdf5 cargo test -p evt3-core --features hdf5 test_hdf5_real_file_ -- --show-output`
 - `cargo check -p evt3-cli --features hdf5`
 - `cargo check -p evt3-python --features hdf5`

@@ -2,6 +2,11 @@
 //!
 //! These tests require the test_data directory to contain sample EVT3 files.
 //! Run with: cargo test --test integration_tests
+//!
+//! Note on skipped tests: real-data tests that skip because a fixture is absent
+//! or the ECF plugin is not installed still report `ok`. Run with
+//! `cargo test -p evt3-core --features hdf5 -- --show-output` to see which
+//! tests were skipped and why.
 
 use evt3_core::{output, Evt3Decoder, FieldOrder};
 use std::fs::File;
@@ -20,6 +25,7 @@ use std::str::FromStr;
 use tempfile::NamedTempFile;
 
 const TEST_FILE_CANDIDATES: [&str; 2] = ["test_data/laser.raw", "../test_data/laser.raw"];
+#[cfg(feature = "hdf5")]
 const HDF5_FILE_CANDIDATES: [&str; 2] = ["test_data/laser.hdf5", "../test_data/laser.hdf5"];
 
 fn test_file_path() -> Option<PathBuf> {
@@ -191,14 +197,16 @@ fn open_payload_reader(test_path: &Path) -> (BufReader<File>, usize) {
     (reader, payload_len)
 }
 
+fn print_skip(test_name: &str, reason: &str) {
+    println!("[SKIP] {test_name} - {reason}");
+}
+
 /// Test that the decoder can successfully decode a real EVT3 file.
 #[test]
 fn test_decode_real_file() {
     let Some(test_path) = test_file_path() else {
-        eprintln!(
-            "Skipping test: test file not found in {:?}",
-            TEST_FILE_CANDIDATES
-        );
+        let reason = format!("test file not found in {:?}", TEST_FILE_CANDIDATES);
+        print_skip("test_decode_real_file", &reason);
         return;
     };
 
@@ -324,10 +332,11 @@ fn is_missing_plugin(err: &evt3_core::DecodeError) -> bool {
 #[cfg(feature = "hdf5")]
 fn test_hdf5_real_file_decode() {
     let Some(h5_path) = hdf5_test_file_path() else {
-        eprintln!(
-            "Skipping: laser.hdf5 not found in {:?}",
+        let reason = format!(
+            "laser.hdf5 not found in {:?}. See evt3-core/test_data/README.md for download instructions.",
             HDF5_FILE_CANDIDATES
         );
+        print_skip("test_hdf5_real_file_decode", &reason);
         return;
     };
 
@@ -335,7 +344,10 @@ fn test_hdf5_real_file_decode() {
     let result = match decoder.decode_file(&h5_path) {
         Ok(r) => r,
         Err(ref e) if is_missing_plugin(e) => {
-            eprintln!("Skipping: ECF plugin not installed ({e})");
+            let reason = format!(
+                "ECF plugin not installed ({e}). See docs/features/hdf5-file-support.md for installation instructions."
+            );
+            print_skip("test_hdf5_real_file_decode", &reason);
             return;
         }
         Err(e) => panic!("Failed to decode laser.hdf5: {e}"),
@@ -358,7 +370,10 @@ fn test_hdf5_real_file_decode() {
 #[cfg(feature = "hdf5")]
 fn test_hdf5_real_file_matches_raw() {
     let (Some(raw_path), Some(h5_path)) = (test_file_path(), hdf5_test_file_path()) else {
-        eprintln!("Skipping: laser.raw or laser.hdf5 not found");
+        print_skip(
+            "test_hdf5_real_file_matches_raw",
+            "laser.raw or laser.hdf5 not found. See evt3-core/test_data/README.md for download instructions.",
+        );
         return;
     };
 
@@ -366,7 +381,10 @@ fn test_hdf5_real_file_matches_raw() {
     let h5 = match Evt3Decoder::new().decode_file(&h5_path) {
         Ok(r) => r,
         Err(ref e) if is_missing_plugin(e) => {
-            eprintln!("Skipping: ECF plugin not installed ({e})");
+            let reason = format!(
+                "ECF plugin not installed ({e}). See docs/features/hdf5-file-support.md for installation instructions."
+            );
+            print_skip("test_hdf5_real_file_matches_raw", &reason);
             return;
         }
         Err(e) => panic!("Failed to decode laser.hdf5: {e}"),
@@ -385,17 +403,21 @@ fn test_hdf5_real_file_matches_raw() {
 #[cfg(feature = "hdf5")]
 fn test_hdf5_real_file_timestamps_monotonic() {
     let Some(h5_path) = hdf5_test_file_path() else {
-        eprintln!(
-            "Skipping: laser.hdf5 not found in {:?}",
+        let reason = format!(
+            "laser.hdf5 not found in {:?}. See evt3-core/test_data/README.md for download instructions.",
             HDF5_FILE_CANDIDATES
         );
+        print_skip("test_hdf5_real_file_timestamps_monotonic", &reason);
         return;
     };
 
     let result = match Evt3Decoder::new().decode_file(&h5_path) {
         Ok(r) => r,
         Err(ref e) if is_missing_plugin(e) => {
-            eprintln!("Skipping: ECF plugin not installed ({e})");
+            let reason = format!(
+                "ECF plugin not installed ({e}). See docs/features/hdf5-file-support.md for installation instructions."
+            );
+            print_skip("test_hdf5_real_file_timestamps_monotonic", &reason);
             return;
         }
         Err(e) => panic!("Failed to decode laser.hdf5: {e}"),
@@ -417,17 +439,21 @@ fn test_hdf5_real_file_timestamps_monotonic() {
 #[cfg(feature = "hdf5")]
 fn test_hdf5_real_file_coordinates_in_bounds() {
     let Some(h5_path) = hdf5_test_file_path() else {
-        eprintln!(
-            "Skipping: laser.hdf5 not found in {:?}",
+        let reason = format!(
+            "laser.hdf5 not found in {:?}. See evt3-core/test_data/README.md for download instructions.",
             HDF5_FILE_CANDIDATES
         );
+        print_skip("test_hdf5_real_file_coordinates_in_bounds", &reason);
         return;
     };
 
     let result = match Evt3Decoder::new().decode_file(&h5_path) {
         Ok(r) => r,
         Err(ref e) if is_missing_plugin(e) => {
-            eprintln!("Skipping: ECF plugin not installed ({e})");
+            let reason = format!(
+                "ECF plugin not installed ({e}). See docs/features/hdf5-file-support.md for installation instructions."
+            );
+            print_skip("test_hdf5_real_file_coordinates_in_bounds", &reason);
             return;
         }
         Err(e) => panic!("Failed to decode laser.hdf5: {e}"),
@@ -454,10 +480,8 @@ fn test_hdf5_real_file_coordinates_in_bounds() {
 #[test]
 fn test_timestamps_monotonic() {
     let Some(test_path) = test_file_path() else {
-        eprintln!(
-            "Skipping test: test file not found in {:?}",
-            TEST_FILE_CANDIDATES
-        );
+        let reason = format!("test file not found in {:?}", TEST_FILE_CANDIDATES);
+        print_skip("test_timestamps_monotonic", &reason);
         return;
     };
 
@@ -485,10 +509,8 @@ fn test_timestamps_monotonic() {
 #[test]
 fn test_coordinates_in_bounds() {
     let Some(test_path) = test_file_path() else {
-        eprintln!(
-            "Skipping test: test file not found in {:?}",
-            TEST_FILE_CANDIDATES
-        );
+        let reason = format!("test file not found in {:?}", TEST_FILE_CANDIDATES);
+        print_skip("test_coordinates_in_bounds", &reason);
         return;
     };
 
@@ -525,10 +547,8 @@ fn test_coordinates_in_bounds() {
 #[test]
 fn test_field_order_formats() {
     let Some(test_path) = test_file_path() else {
-        eprintln!(
-            "Skipping test: test file not found in {:?}",
-            TEST_FILE_CANDIDATES
-        );
+        let reason = format!("test file not found in {:?}", TEST_FILE_CANDIDATES);
+        print_skip("test_field_order_formats", &reason);
         return;
     };
 
@@ -566,10 +586,8 @@ fn test_field_order_formats() {
 #[test]
 fn test_binary_output() {
     let Some(test_path) = test_file_path() else {
-        eprintln!(
-            "Skipping test: test file not found in {:?}",
-            TEST_FILE_CANDIDATES
-        );
+        let reason = format!("test file not found in {:?}", TEST_FILE_CANDIDATES);
+        print_skip("test_binary_output", &reason);
         return;
     };
 
@@ -610,10 +628,8 @@ fn test_binary_output() {
 #[test]
 fn test_decode_performance() {
     let Some(test_path) = test_file_path() else {
-        eprintln!(
-            "Skipping test: test file not found in {:?}",
-            TEST_FILE_CANDIDATES
-        );
+        let reason = format!("test file not found in {:?}", TEST_FILE_CANDIDATES);
+        print_skip("test_decode_performance", &reason);
         return;
     };
 
@@ -646,9 +662,10 @@ fn test_decode_performance() {
 #[test]
 fn test_decode_bytes_matches_decode_file_on_real_file() {
     let Some(test_path) = test_file_path() else {
-        eprintln!(
-            "Skipping test: test file not found in {:?}",
-            TEST_FILE_CANDIDATES
+        let reason = format!("test file not found in {:?}", TEST_FILE_CANDIDATES);
+        print_skip(
+            "test_decode_bytes_matches_decode_file_on_real_file",
+            &reason,
         );
         return;
     };

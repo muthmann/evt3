@@ -189,7 +189,8 @@ HDF5_DIR="$(brew --prefix hdf5)" cargo run -p evt3-cli --features hdf5 -- record
 
 Notes:
 - Builds without `--features hdf5` return `HDF5 input requires building with the 'hdf5' cargo feature`.
-- Some Prophesee HDF5 files use the ECF codec and require `HDF5_PLUGIN_PATH` to point at the Metavision HDF5 plugin directory at runtime.
+- Real-data integration tests that skip still show as `ok`. Run `cargo test -p evt3-core --features hdf5 -- --show-output` to see `[SKIP]` reasons.
+- Some Prophesee HDF5 files use the ECF codec and require `HDF5_PLUGIN_PATH` at runtime. Build instructions for the standalone plugin repo are in `docs/features/hdf5-file-support.md`.
 
 ## Benchmarks
 
