@@ -20,7 +20,7 @@ use std::str::FromStr;
 use tempfile::NamedTempFile;
 
 const TEST_FILE_CANDIDATES: [&str; 2] = ["test_data/laser.raw", "../test_data/laser.raw"];
-const HDF5_FILE_CANDIDATES: [&str; 2] = ["test_data/laser.h5", "../test_data/laser.h5"];
+const HDF5_FILE_CANDIDATES: [&str; 2] = ["test_data/laser.hdf5", "../test_data/laser.hdf5"];
 
 fn test_file_path() -> Option<PathBuf> {
     TEST_FILE_CANDIDATES
@@ -308,21 +308,38 @@ fn test_hdf5_decode_requires_events_dataset() {
     assert!(matches!(err, DecodeError::MissingGroup(_)));
 }
 
-/// Real-data HDF5 tests — skip gracefully when laser.h5 is not present.
-/// Download test data with: scripts/download-test-data.sh
+/// Returns true when an HDF5 decode error is caused by a missing compression
+/// plugin (e.g. Prophesee ECF codec). Real-data tests skip in that case.
+#[cfg(feature = "hdf5")]
+fn is_missing_plugin(err: &evt3_core::DecodeError) -> bool {
+    let msg = err.to_string();
+    msg.contains("plugin") || msg.contains("filter")
+}
+
+/// Real-data HDF5 tests — skip gracefully when laser.hdf5 is not present or
+/// when the Prophesee ECF compression plugin is not installed.
+/// See test_data/README.md for download instructions.
 
 #[test]
 #[cfg(feature = "hdf5")]
 fn test_hdf5_real_file_decode() {
     let Some(h5_path) = hdf5_test_file_path() else {
-        eprintln!("Skipping: laser.h5 not found in {:?}", HDF5_FILE_CANDIDATES);
+        eprintln!(
+            "Skipping: laser.hdf5 not found in {:?}",
+            HDF5_FILE_CANDIDATES
+        );
         return;
     };
 
     let mut decoder = Evt3Decoder::new();
-    let result = decoder
-        .decode_file(&h5_path)
-        .expect("Failed to decode laser.h5");
+    let result = match decoder.decode_file(&h5_path) {
+        Ok(r) => r,
+        Err(ref e) if is_missing_plugin(e) => {
+            eprintln!("Skipping: ECF plugin not installed ({e})");
+            return;
+        }
+        Err(e) => panic!("Failed to decode laser.hdf5: {e}"),
+    };
 
     assert_eq!(result.metadata.width, 1280);
     assert_eq!(result.metadata.height, 720);
@@ -341,12 +358,19 @@ fn test_hdf5_real_file_decode() {
 #[cfg(feature = "hdf5")]
 fn test_hdf5_real_file_matches_raw() {
     let (Some(raw_path), Some(h5_path)) = (test_file_path(), hdf5_test_file_path()) else {
-        eprintln!("Skipping: laser.raw or laser.h5 not found");
+        eprintln!("Skipping: laser.raw or laser.hdf5 not found");
         return;
     };
 
     let raw = Evt3Decoder::new().decode_file(&raw_path).unwrap();
-    let h5 = Evt3Decoder::new().decode_file(&h5_path).unwrap();
+    let h5 = match Evt3Decoder::new().decode_file(&h5_path) {
+        Ok(r) => r,
+        Err(ref e) if is_missing_plugin(e) => {
+            eprintln!("Skipping: ECF plugin not installed ({e})");
+            return;
+        }
+        Err(e) => panic!("Failed to decode laser.hdf5: {e}"),
+    };
 
     assert_eq!(
         raw.cd_events.len(),
@@ -361,11 +385,21 @@ fn test_hdf5_real_file_matches_raw() {
 #[cfg(feature = "hdf5")]
 fn test_hdf5_real_file_timestamps_monotonic() {
     let Some(h5_path) = hdf5_test_file_path() else {
-        eprintln!("Skipping: laser.h5 not found in {:?}", HDF5_FILE_CANDIDATES);
+        eprintln!(
+            "Skipping: laser.hdf5 not found in {:?}",
+            HDF5_FILE_CANDIDATES
+        );
         return;
     };
 
-    let result = Evt3Decoder::new().decode_file(&h5_path).unwrap();
+    let result = match Evt3Decoder::new().decode_file(&h5_path) {
+        Ok(r) => r,
+        Err(ref e) if is_missing_plugin(e) => {
+            eprintln!("Skipping: ECF plugin not installed ({e})");
+            return;
+        }
+        Err(e) => panic!("Failed to decode laser.hdf5: {e}"),
+    };
     let mut last_time = 0u64;
     for (i, event) in result.cd_events.iter().enumerate() {
         assert!(
@@ -383,11 +417,21 @@ fn test_hdf5_real_file_timestamps_monotonic() {
 #[cfg(feature = "hdf5")]
 fn test_hdf5_real_file_coordinates_in_bounds() {
     let Some(h5_path) = hdf5_test_file_path() else {
-        eprintln!("Skipping: laser.h5 not found in {:?}", HDF5_FILE_CANDIDATES);
+        eprintln!(
+            "Skipping: laser.hdf5 not found in {:?}",
+            HDF5_FILE_CANDIDATES
+        );
         return;
     };
 
-    let result = Evt3Decoder::new().decode_file(&h5_path).unwrap();
+    let result = match Evt3Decoder::new().decode_file(&h5_path) {
+        Ok(r) => r,
+        Err(ref e) if is_missing_plugin(e) => {
+            eprintln!("Skipping: ECF plugin not installed ({e})");
+            return;
+        }
+        Err(e) => panic!("Failed to decode laser.hdf5: {e}"),
+    };
     for (i, event) in result.cd_events.iter().enumerate() {
         assert!(
             event.x < result.metadata.width as u16,

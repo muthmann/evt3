@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use hdf5::types::VarLenUnicode;
+use hdf5::types::{VarLenAscii, VarLenUnicode};
 use hdf5::{File, H5Type};
 
 use crate::decoder::{DecodeError, Evt3Decoder};
@@ -15,12 +15,17 @@ struct RawCdEvent {
     t: i64,
 }
 
+// Prophesee HDF5 trigger event layout (verified via h5py dtype inspection):
+// field order is p, t, id (not p, id, t).
+// #[repr(C)] on {i16, i64, i16} naturally produces the matching 24-byte layout:
+// p @ 0 (2 bytes), implicit 6-byte pad, t @ 8 (8 bytes), id @ 16 (2 bytes),
+// implicit 6-byte tail pad to align the struct to 8 bytes, itemsize = 24.
 #[derive(H5Type, Clone, Debug)]
 #[repr(C)]
 struct RawTriggerEvent {
     p: i16,
-    id: i16,
     t: i64,
+    id: i16,
 }
 
 pub(crate) fn decode_hdf5(
@@ -53,8 +58,13 @@ fn parse_geometry(file: &File) -> Result<SensorMetadata, DecodeError> {
         Err(_) => return Ok(SensorMetadata::default()),
     };
 
-    let geometry = attr.read_scalar::<VarLenUnicode>()?;
-    parse_geometry_value(geometry.as_str())
+    // Prophesee files store geometry as ASCII; try that first and fall back to
+    // Unicode for files (e.g. synthetic test fixtures) that use UTF-8 strings.
+    let geometry = attr
+        .read_scalar::<VarLenAscii>()
+        .map(|s| s.as_str().to_string())
+        .or_else(|_| attr.read_scalar::<VarLenUnicode>().map(|s| s.to_string()))?;
+    parse_geometry_value(&geometry)
 }
 
 fn parse_geometry_value(geometry: &str) -> Result<SensorMetadata, DecodeError> {
