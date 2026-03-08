@@ -354,10 +354,13 @@ fn decode_hdf5_or_skip(test_name: &str, path: &std::path::Path) -> Option<evt3_c
 #[cfg(feature = "hdf5")]
 fn test_hdf5_real_file_decode() {
     let Some(h5_path) = hdf5_test_file_path() else {
-        print_skip("test_hdf5_real_file_decode", &format!(
-            "laser.hdf5 not found in {:?}. See evt3-core/test_data/README.md.",
-            HDF5_FILE_CANDIDATES
-        ));
+        print_skip(
+            "test_hdf5_real_file_decode",
+            &format!(
+                "laser.hdf5 not found in {:?}. See evt3-core/test_data/README.md.",
+                HDF5_FILE_CANDIDATES
+            ),
+        );
         return;
     };
 
@@ -407,14 +410,18 @@ fn test_hdf5_real_file_matches_raw() {
 #[cfg(feature = "hdf5")]
 fn test_hdf5_real_file_timestamps_monotonic() {
     let Some(h5_path) = hdf5_test_file_path() else {
-        print_skip("test_hdf5_real_file_timestamps_monotonic", &format!(
-            "laser.hdf5 not found in {:?}. See evt3-core/test_data/README.md.",
-            HDF5_FILE_CANDIDATES
-        ));
+        print_skip(
+            "test_hdf5_real_file_timestamps_monotonic",
+            &format!(
+                "laser.hdf5 not found in {:?}. See evt3-core/test_data/README.md.",
+                HDF5_FILE_CANDIDATES
+            ),
+        );
         return;
     };
 
-    let Some(result) = decode_hdf5_or_skip("test_hdf5_real_file_timestamps_monotonic", &h5_path) else {
+    let Some(result) = decode_hdf5_or_skip("test_hdf5_real_file_timestamps_monotonic", &h5_path)
+    else {
         return;
     };
     let mut last_time = 0u64;
@@ -434,14 +441,18 @@ fn test_hdf5_real_file_timestamps_monotonic() {
 #[cfg(feature = "hdf5")]
 fn test_hdf5_real_file_coordinates_in_bounds() {
     let Some(h5_path) = hdf5_test_file_path() else {
-        print_skip("test_hdf5_real_file_coordinates_in_bounds", &format!(
-            "laser.hdf5 not found in {:?}. See evt3-core/test_data/README.md.",
-            HDF5_FILE_CANDIDATES
-        ));
+        print_skip(
+            "test_hdf5_real_file_coordinates_in_bounds",
+            &format!(
+                "laser.hdf5 not found in {:?}. See evt3-core/test_data/README.md.",
+                HDF5_FILE_CANDIDATES
+            ),
+        );
         return;
     };
 
-    let Some(result) = decode_hdf5_or_skip("test_hdf5_real_file_coordinates_in_bounds", &h5_path) else {
+    let Some(result) = decode_hdf5_or_skip("test_hdf5_real_file_coordinates_in_bounds", &h5_path)
+    else {
         return;
     };
     for (i, event) in result.cd_events.iter().enumerate() {
