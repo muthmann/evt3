@@ -51,3 +51,28 @@
 - Verification results:
   - `HDF5_DIR=/opt/homebrew/opt/hdf5 cargo test -p evt3-core --features hdf5 test_hdf5_real_file_ -- --show-output`
   - `cargo test -p evt3-core`
+
+## Follow-Up: Automated ECF Plugin Install Script
+
+### Plan
+
+- [x] Add a standalone `scripts/install-ecf-plugin.sh` helper that clones, builds, and installs the ECF plugin.
+- [x] Document the automated flow in the HDF5 feature brief while keeping the manual CMake steps as a fallback.
+- [x] Verify the existing local plugin path still enables the real-file HDF5 test.
+- [x] Verify the new script installs into a custom prefix, skips when rerun, and can be forced to rebuild.
+- [x] Record the verification results.
+
+### Review
+
+- Added `scripts/install-ecf-plugin.sh` as an opt-in helper that detects HDF5, clones `prophesee-ai/hdf5_ecf`, builds it, and installs the plugin artifacts into a user-selected directory.
+- Kept the HDF5 feature brief’s manual CMake instructions and added an automated path above them.
+- Preserved the codec symlink chain during install and, on macOS, added `@loader_path` to the plugin rpath so copied installs remain self-contained after the temp build directory is deleted.
+- The implementation intentionally copies the built plugin artifacts into the target directory instead of relying on `cmake --install`, because the upstream `hdf5_ecf` project keeps `HDF5_ECF_PLUGIN_INSTALL_PATH` as an internal cache variable and still tried to install into `/usr/local/hdf5/...` during verification.
+- Verification results:
+  - `bash -n scripts/install-ecf-plugin.sh`
+  - `./scripts/install-ecf-plugin.sh --help`
+  - `HDF5_PLUGIN_PATH=/Users/uthmann/sciebo/hdf5_ecf/build/lib/hdf5/plugin HDF5_DIR="$(brew --prefix hdf5)" cargo test -p evt3-core --features hdf5 test_hdf5_real_file_decode -- --show-output`
+  - `HDF5_DIR="$(brew --prefix hdf5)" ./scripts/install-ecf-plugin.sh --prefix /tmp/evt3-ecf-plugin-check`
+  - `HDF5_PLUGIN_PATH=/tmp/evt3-ecf-plugin-check HDF5_DIR="$(brew --prefix hdf5)" cargo test -p evt3-core --features hdf5 test_hdf5_real_file_decode -- --show-output`
+  - `HDF5_DIR="$(brew --prefix hdf5)" ./scripts/install-ecf-plugin.sh --prefix /tmp/evt3-ecf-plugin-check`
+  - `HDF5_DIR="$(brew --prefix hdf5)" ./scripts/install-ecf-plugin.sh --prefix /tmp/evt3-ecf-plugin-check --force`
