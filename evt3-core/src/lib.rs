@@ -46,6 +46,8 @@
 //! - Incremental byte-stream decoding for live camera pipelines
 
 pub mod decoder;
+#[cfg(feature = "hdf5")]
+pub(crate) mod hdf5_decoder;
 pub mod output;
 pub mod parser;
 pub mod types;

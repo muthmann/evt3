@@ -13,6 +13,7 @@ High-performance EVT 3.0 raw data decoder for [Prophesee](https://www.prophesee.
 - 🚀 **High Performance** - 50M+ events/second, 5.6x faster than C++ reference
 - 📦 **Multiple Interfaces** - CLI tool, Python bindings, Rust library
 - 🐍 **Zero-copy Python** - NumPy array access via PyO3
+- 🧪 **Optional HDF5 Input** - `.h5` and `.hdf5` support behind a cargo feature
 - ✅ **Validated** - Output matches C++ reference implementation exactly
 - 🔧 **Customizable** - Configurable output field order
 
@@ -76,6 +77,9 @@ cargo build --release
 
 # The binary is at: ./target/release/evt3
 ./target/release/evt3 recording.raw events.csv
+
+# Optional HDF5 support
+HDF5_DIR="$(brew --prefix hdf5)" cargo build --release -p evt3-cli --features hdf5
 
 # Optional: Install to PATH
 cp target/release/evt3 ~/.local/bin/
@@ -174,6 +178,17 @@ Notes:
 - `decode_buffer` still expects 16-bit EVT3 words, not raw bytes.
 - `decode_bytes` expects little-endian EVT3 payload bytes and can be called with odd-sized chunks.
 - Call `finish_stream()` only when the stream is complete so a trailing half-word is reported as an error instead of being buffered for the next chunk.
+- `.h5` and `.hdf5` decoding is available when the crate or binary is built with the `hdf5` feature.
+
+### HDF5 Inputs
+
+```bash
+HDF5_DIR="$(brew --prefix hdf5)" cargo run -p evt3-cli --features hdf5 -- recording.h5 events.csv
+```
+
+Notes:
+- Builds without `--features hdf5` return `HDF5 input requires building with the 'hdf5' cargo feature`.
+- Some Prophesee HDF5 files use the ECF codec and require `HDF5_PLUGIN_PATH` to point at the Metavision HDF5 plugin directory at runtime.
 
 ## Benchmarks
 

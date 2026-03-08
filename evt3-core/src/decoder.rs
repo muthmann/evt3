@@ -21,6 +21,18 @@ pub enum DecodeError {
 
     #[error("Unexpected end of file")]
     UnexpectedEof,
+
+    #[cfg(feature = "hdf5")]
+    #[error("HDF5 error: {0}")]
+    Hdf5(#[from] hdf5::Error),
+
+    #[cfg(feature = "hdf5")]
+    #[error("HDF5 file missing required group: {0}")]
+    MissingGroup(String),
+
+    #[cfg(feature = "hdf5")]
+    #[error("HDF5 geometry attribute malformed: {0}")]
+    MalformedGeometry(String),
 }
 
 /// Constants for timestamp handling (matching C++ reference).
@@ -239,6 +251,15 @@ impl Evt3Decoder {
         Ok(())
     }
 
+    /// Finalizes a byte stream leniently, discarding any buffered trailing
+    /// padding byte.
+    ///
+    /// Use this at file EOF when a stray byte is known to be benign, such as
+    /// legacy `.raw` files that end with a newline after the binary payload.
+    pub fn finish_stream_lenient(&mut self) {
+        self.pending_byte = None;
+    }
+
     #[inline]
     fn discard_trailing_file_padding(&mut self) {
         if matches!(self.pending_byte, Some(b'\n' | b'\r')) {
@@ -288,7 +309,26 @@ impl Evt3Decoder {
     ///
     /// Parses the file header (if present) and decodes all events.
     pub fn decode_file<P: AsRef<Path>>(&mut self, path: P) -> Result<DecodeResult, DecodeError> {
-        let file = File::open(path.as_ref())?;
+        let path = path.as_ref();
+        let extension = path
+            .extension()
+            .and_then(|ext| ext.to_str())
+            .unwrap_or_default()
+            .to_ascii_lowercase();
+
+        #[cfg(feature = "hdf5")]
+        if matches!(extension.as_str(), "h5" | "hdf5") {
+            return crate::hdf5_decoder::decode_hdf5(self, path);
+        }
+
+        #[cfg(not(feature = "hdf5"))]
+        if matches!(extension.as_str(), "h5" | "hdf5") {
+            return Err(DecodeError::InvalidFormat(
+                "HDF5 input requires building with the 'hdf5' cargo feature".to_string(),
+            ));
+        }
+
+        let file = File::open(path)?;
         let mut reader = BufReader::new(file);
 
         // Parse header
@@ -615,6 +655,20 @@ mod tests {
             .decode_bytes(&bytes, &mut cd_events, &mut trigger_events)
             .unwrap();
 
+        assert!(decoder.finish_stream().is_ok());
+    }
+
+    #[test]
+    fn finish_stream_lenient_discards_dangling_half_word() {
+        let mut decoder = Evt3Decoder::new();
+        let mut cd_events = Vec::new();
+        let mut trigger_events = Vec::new();
+
+        decoder
+            .decode_bytes(&[0x00], &mut cd_events, &mut trigger_events)
+            .unwrap();
+
+        decoder.finish_stream_lenient();
         assert!(decoder.finish_stream().is_ok());
     }
 

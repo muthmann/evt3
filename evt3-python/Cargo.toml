@@ -10,6 +10,10 @@ description = "Python bindings for EVT 3.0 decoder with zero-copy numpy support"
 name = "evt3"
 crate-type = ["cdylib"]
 
+[features]
+default = []
+hdf5 = ["evt3-core/hdf5"]
+
 [dependencies]
 evt3-core = { path = "../evt3-core" }
 pyo3 = { version = "0.20", features = ["extension-module"] }

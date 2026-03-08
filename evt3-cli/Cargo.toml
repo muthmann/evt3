@@ -15,6 +15,10 @@ categories = ["command-line-utilities", "parser-implementations"]
 name = "evt3"
 path = "src/main.rs"
 
+[features]
+default = []
+hdf5 = ["evt3-core/hdf5"]
+
 [dependencies]
 evt3-core = { path = "../evt3-core" }
 clap = { version = "4.4", features = ["derive"] }
