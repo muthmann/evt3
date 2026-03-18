@@ -66,7 +66,9 @@ jobs:
           key: ubuntu-cargo-hdf5-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Install HDF5
-        run: sudo apt-get install -y libhdf5-dev
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libhdf5-dev
 
       - name: Clippy (hdf5 feature)
         run: cargo clippy -p evt3-core -p evt3-cli --features hdf5 -- -D warnings
