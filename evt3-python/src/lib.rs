@@ -7,7 +7,7 @@ use evt3_core::{CdEvent, Evt3Decoder, TriggerEvent};
 use numpy::{IntoPyArray, PyArray1};
 use pyo3::exceptions::PyIOError;
 use pyo3::prelude::*;
-use pyo3::types::PyDict;
+use pyo3::types::{PyDict, PyModule};
 use std::path::PathBuf;
 
 /// Container for decoded CD events with zero-copy numpy access.
@@ -52,13 +52,13 @@ impl Events {
     /// This creates a view into the Rust-allocated memory without copying.
     /// The array is valid as long as this Events object is alive.
     #[getter]
-    fn x<'py>(&self, py: Python<'py>) -> &'py PyArray1<u16> {
+    fn x<'py>(&self, py: Python<'py>) -> Bound<'py, PyArray1<u16>> {
         self.x.clone().into_pyarray(py)
     }
 
     /// Returns the Y coordinates as a numpy array.
     #[getter]
-    fn y<'py>(&self, py: Python<'py>) -> &'py PyArray1<u16> {
+    fn y<'py>(&self, py: Python<'py>) -> Bound<'py, PyArray1<u16>> {
         self.y.clone().into_pyarray(py)
     }
 
@@ -66,25 +66,25 @@ impl Events {
     ///
     /// Values: 0 = OFF (decrease in brightness), 1 = ON (increase)
     #[getter]
-    fn polarity<'py>(&self, py: Python<'py>) -> &'py PyArray1<u8> {
+    fn polarity<'py>(&self, py: Python<'py>) -> Bound<'py, PyArray1<u8>> {
         self.polarity.clone().into_pyarray(py)
     }
 
     /// Alias for polarity (shorter name).
     #[getter]
-    fn p<'py>(&self, py: Python<'py>) -> &'py PyArray1<u8> {
+    fn p<'py>(&self, py: Python<'py>) -> Bound<'py, PyArray1<u8>> {
         self.polarity.clone().into_pyarray(py)
     }
 
     /// Returns the timestamps as a numpy array (in microseconds).
     #[getter]
-    fn timestamp<'py>(&self, py: Python<'py>) -> &'py PyArray1<u64> {
+    fn timestamp<'py>(&self, py: Python<'py>) -> Bound<'py, PyArray1<u64>> {
         self.timestamp.clone().into_pyarray(py)
     }
 
     /// Alias for timestamp (shorter name).
     #[getter]
-    fn t<'py>(&self, py: Python<'py>) -> &'py PyArray1<u64> {
+    fn t<'py>(&self, py: Python<'py>) -> Bound<'py, PyArray1<u64>> {
         self.timestamp.clone().into_pyarray(py)
     }
 
@@ -109,13 +109,13 @@ impl Events {
     /// Returns all arrays as a dictionary.
     ///
     /// This is useful for creating a pandas DataFrame or structured array.
-    fn to_dict<'py>(&self, py: Python<'py>) -> PyResult<PyObject> {
+    fn to_dict<'py>(&self, py: Python<'py>) -> PyResult<Py<PyDict>> {
         let dict = PyDict::new(py);
         dict.set_item("x", self.x.clone().into_pyarray(py))?;
         dict.set_item("y", self.y.clone().into_pyarray(py))?;
         dict.set_item("polarity", self.polarity.clone().into_pyarray(py))?;
         dict.set_item("timestamp", self.timestamp.clone().into_pyarray(py))?;
-        Ok(dict.into())
+        Ok(dict.unbind())
     }
 }
 
@@ -166,19 +166,19 @@ impl TriggerEvents {
 
     /// Returns the trigger values as a numpy array.
     #[getter]
-    fn value<'py>(&self, py: Python<'py>) -> &'py PyArray1<u8> {
+    fn value<'py>(&self, py: Python<'py>) -> Bound<'py, PyArray1<u8>> {
         self.value.clone().into_pyarray(py)
     }
 
     /// Returns the trigger channel IDs as a numpy array.
     #[getter]
-    fn id<'py>(&self, py: Python<'py>) -> &'py PyArray1<u8> {
+    fn id<'py>(&self, py: Python<'py>) -> Bound<'py, PyArray1<u8>> {
         self.id.clone().into_pyarray(py)
     }
 
     /// Returns the timestamps as a numpy array.
     #[getter]
-    fn timestamp<'py>(&self, py: Python<'py>) -> &'py PyArray1<u64> {
+    fn timestamp<'py>(&self, py: Python<'py>) -> Bound<'py, PyArray1<u64>> {
         self.timestamp.clone().into_pyarray(py)
     }
 }
@@ -319,7 +319,7 @@ fn decode_bytes(
 
 /// EVT 3.0 decoder module for Python.
 #[pymodule]
-fn _evt3(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
+fn _evt3(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(decode_file, m)?)?;
     m.add_function(wrap_pyfunction!(decode_file_with_triggers, m)?)?;
     m.add_function(wrap_pyfunction!(decode_bytes, m)?)?;
