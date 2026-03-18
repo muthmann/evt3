@@ -17,5 +17,5 @@ hdf5 = ["evt3-core/hdf5"]
 
 [dependencies]
 evt3-core = { path = "../evt3-core" }
-pyo3 = { version = "0.20", features = ["extension-module"] }
-numpy = "0.20"
+pyo3 = { version = "0.23", features = ["extension-module"] }
+numpy = "0.23"

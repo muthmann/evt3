@@ -4,6 +4,8 @@ High-performance EVT 3.0 decoder for Prophesee event cameras with zero-copy nump
 
 ## Installation
 
+Supported Python versions: CPython 3.9 through 3.13.
+
 ```bash
 # From source (requires Rust toolchain)
 cd evt3-python
@@ -11,7 +13,7 @@ pip install maturin
 maturin develop
 
 # Or build a wheel
-maturin build --release
+maturin build --release --interpreter python
 pip install target/wheels/evt3-*.whl
 ```
 
