@@ -28,7 +28,7 @@ consequences for each distribution channel:
 ```toml
 # Cargo.toml
 [dependencies]
-evt3 = { version = "0.3", features = ["hdf5"] }
+evt3 = { version = "0.4", features = ["hdf5"] }
 ```
 
 Your users must have `libhdf5-dev` installed (`brew install hdf5` /

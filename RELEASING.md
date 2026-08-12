@@ -15,9 +15,11 @@ We use Semantic Versioning (SemVer): `MAJOR.MINOR.PATCH`
 1. [ ] All tests pass on CI
 2. [ ] CHANGELOG.md updated with release notes
 3. [ ] Version numbers updated in:
-   - `Cargo.toml` (`workspace.package.version`)
+   - `Cargo.toml` (`workspace.package.version`) — all three crates inherit this
+     through `version.workspace = true`, so no member manifest needs editing
    - `Cargo.toml` (`workspace.dependencies.evt3.version` — must match)
-   - `evt3-python/pyproject.toml`
+   - `evt3-python/pyproject.toml` (maturin reads the version from here, not
+     from `evt3-python/Cargo.toml`)
 4. [ ] Documentation is up to date, including the `evt3` dependency example in
    `docs/features/hdf5-file-support.md`, which pins a minor version
 5. [ ] Benchmarks run and results updated if needed

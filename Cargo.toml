@@ -7,7 +7,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.3.0"
+version = "0.4.0"
 edition = "2021"
 authors = ["Mika Uthmann <muthmann@physik.uni-bielefeld.de"]
 license = "MIT"
@@ -23,7 +23,7 @@ thiserror = "1.0"
 byteorder = "1.5"
 # Keep this version in step with workspace.package.version above.
 # crates.io rejects a publish whose path dependency carries no version.
-evt3 = { path = "evt3-core", version = "0.3.0" }
+evt3 = { path = "evt3-core", version = "0.4.0" }
 
 [profile.release]
 lto = "thin"

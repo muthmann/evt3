@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-08-12
+
 ### Added
 
 - Python 3.14 and free-threaded Python 3.14 support, including CI coverage and
@@ -19,7 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated the Python bindings to PyO3 0.29 and `numpy` 0.29
 - Raised the Rust requirement for the Python bindings to Rust 1.83
 - **Breaking (Rust library):** the decoder library is now published as `evt3`
-  instead of `evt3-core`. Replace `evt3-core = "0.2"` with `evt3 = "0.3"` and
+  instead of `evt3-core`. Replace `evt3-core = "0.2"` with `evt3 = "0.4"` and
   `use evt3_core::…` with `use evt3::…`. The source directory is unchanged.
   See [ADR 0005](docs/adr/0005-crate-naming-on-crates-io.md).
 - The CLI is now published as `evt3-cli` and installs with

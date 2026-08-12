@@ -1,6 +1,6 @@
 [package]
 name = "evt3"
-version = "0.3.0"
+version.workspace = true
 edition = "2021"
 authors = ["Mika Uthmann <muthmann@physik.uni-bielefeld.de>"]
 license = "MIT"
