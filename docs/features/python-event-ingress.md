@@ -23,6 +23,10 @@ zero-copy cross-process transfer.
   assert events.t is events.t
   ```
 
+- `evt3.decode_file_batches(...)` returns bounded CD-event batches, while
+  `evt3.decode_file_batches_with_triggers(...)` returns bounded
+  `(Events, TriggerEvents)` pairs without dropping external trigger edges.
+
 - `evt3.Events.from_arrays(...)` builds a container from existing NumPy arrays:
 
   ```python

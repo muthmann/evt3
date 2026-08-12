@@ -47,6 +47,12 @@ Compared with the previous full-memory process, measured maximum RSS decreased
 by `1 - 0.227 / 2.879 = 92.1%`. Batch size is configurable. Retaining earlier
 batches also retains their arrays and increases memory accordingly.
 
+This measurement used the CD-only iterator. The trigger-aware
+`decode_file_batches_with_triggers` API uses the same bounded decoder and also
+returns each batch's external trigger columns. No trigger-specific timing claim
+is made because the benchmark recording and consumer were selected for CD-event
+throughput.
+
 ## Streaming CLI
 
 Two alternating full-file runs wrote CSV output to `/dev/null`, so they include

@@ -5,15 +5,21 @@ Performance benchmarks comparing the Rust EVT3 decoder against the C++ reference
 See [optimization-results-2026-08-12.md](./optimization-results-2026-08-12.md)
 for the direct-column, bounded-memory, and compatibility measurements.
 
-## Latest Results
+## Latest Optimization Results
 
 **Test file:** [`laser.raw`](https://kdrive.infomaniak.com/app/share/975517/71d66a09-e3b6-480b-ba94-a1509e8ab2c8) (325 MB, 116M events)
 
-| Decoder | Avg Time | Events/sec | Speedup |
-|---------|----------|------------|---------|
-| Rust (Python) | 2.35s | 49M/s | **5.6x** |
-| Rust CLI | 9.96s | 12M/s | **1.3x** |
-| C++ Reference | 13.13s | 9M/s | 1.0x (baseline) |
+| Workflow | Before | Optimized | Improvement |
+|---|---:|---:|---:|
+| Python `decode_file` | 3.843 s | 2.108 s | **1.82x** |
+| Python `decode_file` maximum RSS | 2.879 GB | 1.178 GB | **59.1% less** |
+| Streaming CLI with CSV formatting | 15.343 s | 9.185 s | **1.67x** |
+| Streaming CLI maximum RSS | 0.940 GB | 0.064 GB | **93.2% less** |
+
+The bounded Python iterator completed the same input in 2.505 s with 0.227 GB
+maximum RSS. See the linked results document for exact checksums, methodology,
+and interpretation. C++ comparisons remain available through the benchmark
+runner, but are not mixed into this before/after optimization table.
 
 ## Running Benchmarks
 

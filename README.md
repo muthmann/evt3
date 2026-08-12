@@ -267,9 +267,10 @@ Notes:
 - `.h5` and `.hdf5` decoding is available when the crate or binary is built with the `hdf5` feature.
 - `decode_file` remains source-compatible and returns the same `Events` API. It
   now decodes directly into NumPy's columnar layout and releases the Python GIL.
-- `decode_file_batches` is the bounded-memory option for large recordings. The
-  arrays in a batch remain valid after the iterator advances, but retaining all
-  batches naturally retains the full recording.
+- `decode_file_batches` is the bounded-memory option for large recordings.
+  Use `decode_file_batches_with_triggers` when external trigger edges are also
+  required. The arrays in a batch remain valid after the iterator advances,
+  but retaining all batches naturally retains the full recording.
 
 ### HDF5 Inputs
 

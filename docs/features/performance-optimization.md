@@ -7,7 +7,8 @@
 - An `EventSink` separates decoding from row or column storage.
 - Python file decoding writes directly into stable NumPy columns and releases
   the GIL.
-- Python, CLI, and HDF5 have bounded-memory file paths.
+- Python, CLI, and HDF5 have bounded-memory file paths. Python offers both
+  CD-only batches and `(Events, TriggerEvents)` batches.
 - Release and benchmark profiles use thin LTO and one code-generation unit.
 - `scripts/build-pgo.sh` creates an optional profile-guided workspace build
   from the real-file performance workload.
@@ -34,6 +35,10 @@ Batch consumers can also submit analysis of completed batches to worker
 threads or processes while the next batch is decoded. Parallel in-file decode
 would require a measured two-pass boundary-state design and is not enabled by
 default because it doubles the encoded-input scan.
+
+Use `decode_file_batches_with_triggers` instead of `decode_file_batches` when
+the analysis depends on external trigger edges. Trigger decoding occurs in the
+same sequential core pass and does not require a second file scan.
 
 ## Measurement
 
