@@ -4,7 +4,8 @@ High-performance EVT 3.0 decoder for Prophesee event cameras with zero-copy nump
 
 ## Installation
 
-Supported Python versions: CPython 3.9 through 3.13.
+Supported Python versions: CPython 3.9 through 3.14, including free-threaded
+CPython 3.14.
 
 ```bash
 # From source (requires Rust toolchain)

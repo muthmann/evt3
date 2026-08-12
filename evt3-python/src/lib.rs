@@ -213,7 +213,7 @@ pub struct DecodeResult {
 fn decode_file(py: Python<'_>, path: &str) -> PyResult<Py<Events>> {
     let path = PathBuf::from(path);
     let result = py
-        .allow_threads(move || Evt3Decoder::new().decode_file_columns(&path))
+        .detach(move || Evt3Decoder::new().decode_file_columns(&path))
         .map_err(decode_error)?;
     let events = events_from_result(py, result);
 
@@ -240,7 +240,7 @@ fn decode_file_with_triggers(
     let path = PathBuf::from(path);
 
     let result = py
-        .allow_threads(move || Evt3Decoder::new().decode_file_columns(&path))
+        .detach(move || Evt3Decoder::new().decode_file_columns(&path))
         .map_err(decode_error)?;
     let width = result.metadata.width;
     let height = result.metadata.height;
@@ -369,7 +369,7 @@ impl PyFileDecoder {
     fn __next__(&mut self, py: Python<'_>) -> PyResult<Option<Py<Events>>> {
         let mut sink = ColumnarEventSink::default();
         let has_batch = py
-            .allow_threads(|| self.reader.read_next_into(&mut sink))
+            .detach(|| self.reader.read_next_into(&mut sink))
             .map_err(decode_error)?;
         if !has_batch {
             return Ok(None);
@@ -432,7 +432,7 @@ impl PyFileDecoderWithTriggers {
     fn __next__(&mut self, py: Python<'_>) -> PyResult<Option<(Py<Events>, Py<TriggerEvents>)>> {
         let mut sink = ColumnarEventSink::default();
         let has_batch = py
-            .allow_threads(|| self.reader.read_next_into(&mut sink))
+            .detach(|| self.reader.read_next_into(&mut sink))
             .map_err(decode_error)?;
         if !has_batch {
             return Ok(None);
@@ -482,7 +482,7 @@ fn decode_error(error: evt3_core::DecodeError) -> PyErr {
 }
 
 /// EVT 3.0 decoder module for Python.
-#[pymodule]
+#[pymodule(gil_used = false)]
 fn _evt3(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(decode_file, m)?)?;
     m.add_function(wrap_pyfunction!(decode_file_with_triggers, m)?)?;

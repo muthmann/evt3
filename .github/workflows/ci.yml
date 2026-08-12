@@ -79,37 +79,64 @@ jobs:
       - name: Run integration tests (hdf5 feature, synthetic fixtures only)
         run: cargo test -p evt3-core --test integration_tests --features hdf5 -- --show-output
 
+  python-bindings-msrv:
+    name: Python Bindings (Rust 1.83)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install minimum supported Rust
+        uses: dtolnay/rust-toolchain@1.83.0
+
+      - name: Check Python bindings
+        run: cargo check -p evt3-python
+
   python-tests:
     name: Python Tests
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
-        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13']
+        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13', '3.14']
+        include:
+          - os: ubuntu-latest
+            python-version: '3.14t'
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Install uv
-        uses: astral-sh/setup-uv@v4
-      
+
       - name: Set up Python
-        run: uv python install ${{ matrix.python-version }}
-      
+        id: python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
-      
+
       - name: Create venv and install dependencies
         working-directory: evt3-python
         run: |
-          uv venv
+          uv venv --python "${{ steps.python.outputs.python-path }}"
           uv pip install maturin pytest numpy pandas
-      
+
       - name: Build Python package
         working-directory: evt3-python
         run: |
           source .venv/bin/activate
           maturin develop
-      
+
+      - name: Verify free-threaded import and parallel decoding
+        if: matrix.python-version == '3.14t'
+        working-directory: evt3-python
+        env:
+          EVT3_REQUIRE_FREE_THREADED: '1'
+        run: |
+          source .venv/bin/activate
+          pytest tests/test_free_threading.py -v
+
       - name: Run Python tests (synthetic only)
         working-directory: evt3-python
         run: |

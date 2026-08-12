@@ -23,6 +23,8 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: Free Threading :: 2 - Beta",
     "Topic :: Scientific/Engineering",
     "Topic :: Scientific/Engineering :: Image Processing",
     "Topic :: Multimedia :: Video",
@@ -55,8 +57,8 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_functions = ["test_*"]
 
-[tool.uv]
-dev-dependencies = [
+[dependency-groups]
+dev = [
     "pytest>=7.0",
     "maturin>=1.4",
     "pandas>=1.3",
