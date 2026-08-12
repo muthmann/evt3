@@ -2,6 +2,9 @@
 
 Performance benchmarks comparing the Rust EVT3 decoder against the C++ reference implementation.
 
+See [optimization-results-2026-08-12.md](./optimization-results-2026-08-12.md)
+for the direct-column, bounded-memory, and compatibility measurements.
+
 ## Latest Results
 
 **Test file:** [`laser.raw`](https://kdrive.infomaniak.com/app/share/975517/71d66a09-e3b6-480b-ba94-a1509e8ab2c8) (325 MB, 116M events)
@@ -47,9 +50,16 @@ Results will be saved to `target/criterion/` with HTML reports.
 
 - Each decoder is run 3 times (configurable with `--iterations`)
 - **Rust (Python)**: Measures pure decode time (events loaded into memory)
+- **Rust (Python batches)**: Measures decode plus bounded batch-object creation;
+  batches are released as iteration advances
 - **Rust CLI / C++ Reference**: Measures decode + CSV file write (I/O bound)
 - Events/sec calculated from average time
 - Speedup relative to C++ reference decoder
+
+Python decode results are released between iterations so the next iteration
+does not overlap the previous result's memory. Compare pure decoders with each
+other and decode-plus-write tools with each other; the two groups measure
+different work.
 
 ## Hardware
 

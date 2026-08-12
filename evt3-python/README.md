@@ -75,6 +75,20 @@ trigger_values = triggers.value
 with open("recording.raw", "rb") as f:
     raw_bytes = f.read()
 events = evt3.decode_bytes(raw_bytes, sensor_width=1280, sensor_height=720)
+
+# Recommended for large files: bounded-memory file batches
+for batch in evt3.decode_file_batches("recording.raw", batch_bytes=8 << 20):
+    analyze(batch.x, batch.y, batch.p, batch.t)
+
+# Bounded batches including external trigger events
+for events, triggers in evt3.decode_file_batches_with_triggers("recording.raw"):
+    analyze(events, triggers.timestamp, triggers.id, triggers.value)
+
+# Recommended for live input: one stateful decoder across byte chunks
+decoder = evt3.Decoder(sensor_width=1280, sensor_height=720)
+for raw_chunk in camera_chunks:
+    analyze(decoder.feed(raw_chunk))
+decoder.finish()
 ```
 
 ## Performance
@@ -83,3 +97,10 @@ The decoder is implemented in Rust with careful attention to performance:
 - Streaming buffer decoding to handle large files
 - Columnar data layout for cache-efficient numpy access
 - Minimal memory allocations during decoding
+
+The established `decode_file`, `decode_file_with_triggers`, and `decode_bytes`
+calls remain compatible. `decode_file` now writes directly into the final
+NumPy columns and releases the GIL while Rust reads and decodes the file.
+`decode_file_batches` and `decode_file_batches_with_triggers` are opt-in and
+keep event storage bounded. During normal iteration, the consumer's current
+arrays and the next batch being built can briefly coexist.

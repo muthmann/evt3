@@ -150,6 +150,22 @@ print(f"Event rate: {len(events) / ((t[-1] - t[0]) / 1e6):.0f} events/sec")
 # Create pandas DataFrame
 import pandas as pd
 df = pd.DataFrame(events.to_dict())
+
+# Existing decode_file code stays unchanged and now uses the optimized
+# columnar decoder internally. Process bounded batches when the full recording
+# does not need to stay in memory:
+for batch in evt3.decode_file_batches("recording.raw", batch_bytes=8 << 20):
+    process(batch.x, batch.y, batch.p, batch.t)
+
+# Preserve external trigger events in the bounded-memory workflow:
+for events, triggers in evt3.decode_file_batches_with_triggers("recording.raw"):
+    process(events, triggers.timestamp, triggers.id, triggers.value)
+
+# Preserve decoder state across arbitrary live-input chunk borders:
+decoder = evt3.Decoder(sensor_width=1280, sensor_height=720)
+for raw_chunk in camera_chunks:
+    process(decoder.feed(raw_chunk))
+decoder.finish()
 ```
 
 ### Python To AugurRS
@@ -249,6 +265,11 @@ Notes:
 - `decode_bytes` expects little-endian EVT3 payload bytes and can be called with odd-sized chunks.
 - Call `finish_stream()` only when the stream is complete so a trailing half-word is reported as an error instead of being buffered for the next chunk.
 - `.h5` and `.hdf5` decoding is available when the crate or binary is built with the `hdf5` feature.
+- `decode_file` remains source-compatible and returns the same `Events` API. It
+  now decodes directly into NumPy's columnar layout and releases the Python GIL.
+- `decode_file_batches` is the bounded-memory option for large recordings. The
+  arrays in a batch remain valid after the iterator advances, but retaining all
+  batches naturally retains the full recording.
 
 ### HDF5 Inputs
 

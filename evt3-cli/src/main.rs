@@ -4,9 +4,13 @@
 
 use anyhow::{Context, Result};
 use clap::Parser;
-use evt3_core::{output, Evt3Decoder, FieldOrder};
+use evt3_core::output::{BinaryWriter, CsvWriter, TriggerCsvWriter};
+use evt3_core::{
+    ColumnarEventSink, EventFileReader, FieldOrder, SensorMetadata, DEFAULT_BATCH_BYTES,
+};
 use indicatif::{ProgressBar, ProgressStyle};
-use std::path::PathBuf;
+use std::fs::File;
+use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::time::Instant;
 
@@ -52,6 +56,55 @@ struct Args {
     quiet: bool,
 }
 
+enum StreamingOutput {
+    Csv(CsvWriter<File>),
+    Binary(BinaryWriter<File>),
+}
+
+impl StreamingOutput {
+    fn open(path: &Path, metadata: &SensorMetadata, field_order: FieldOrder) -> Result<Self> {
+        let extension = path
+            .extension()
+            .and_then(|extension| extension.to_str())
+            .unwrap_or("csv")
+            .to_ascii_lowercase();
+        let file = File::create(path).context("Failed to create output file")?;
+
+        match extension.as_str() {
+            "csv" => {
+                let mut writer = CsvWriter::new(file, field_order);
+                writer.write_header(Some(metadata))?;
+                Ok(Self::Csv(writer))
+            }
+            "bin" => {
+                let mut writer = BinaryWriter::new(file);
+                writer.write_header(metadata, 0)?;
+                Ok(Self::Binary(writer))
+            }
+            _ => anyhow::bail!("Unsupported output format: .{extension}. Use .csv or .bin"),
+        }
+    }
+
+    fn write(&mut self, events: &evt3_core::EventColumns) -> Result<()> {
+        match self {
+            Self::Csv(writer) => writer.write_columns(events)?,
+            Self::Binary(writer) => writer.write_columns(events)?,
+        }
+        Ok(())
+    }
+
+    fn finish(&mut self, event_count: u64) -> Result<()> {
+        match self {
+            Self::Csv(writer) => writer.flush()?,
+            Self::Binary(writer) => {
+                writer.update_event_count(event_count)?;
+                writer.flush()?;
+            }
+        }
+        Ok(())
+    }
+}
+
 fn main() -> Result<()> {
     let args = Args::parse();
 
@@ -75,101 +128,71 @@ fn main() -> Result<()> {
 
     let start_time = Instant::now();
 
-    // Decode the file
+    // Open the input and output before decoding so event batches can be
+    // written immediately instead of retaining the full recording in memory.
     progress.set_message(format!(
         "Decoding {:?}...",
         args.input.file_name().unwrap_or_default()
     ));
 
-    let mut decoder = Evt3Decoder::new();
-    let result = decoder
-        .decode_file(&args.input)
-        .context("Failed to decode EVT3 file")?;
+    let mut reader = EventFileReader::open(&args.input, DEFAULT_BATCH_BYTES)
+        .context("Failed to open EVT3 file")?;
+    let metadata = reader.metadata().clone();
+    let mut output = StreamingOutput::open(&args.output, &metadata, field_order)?;
+    let mut trigger_writer: Option<TriggerCsvWriter<File>> = None;
+    let mut batch = ColumnarEventSink::default();
+    let mut event_count = 0_u64;
+    let mut trigger_count = 0_u64;
 
-    let decode_duration = start_time.elapsed();
+    while reader
+        .read_next_into(&mut batch)
+        .context("Failed to decode EVT3 file")?
+    {
+        output.write(&batch.cd).context("Failed to write output")?;
+        event_count += batch.cd.len() as u64;
 
-    if !args.quiet {
-        progress.set_message(format!(
-            "Decoded {} CD events, {} trigger events in {:.2}s",
-            result.cd_events.len(),
-            result.trigger_events.len(),
-            decode_duration.as_secs_f64()
-        ));
-    }
-
-    // Determine output format from extension
-    let output_ext = args
-        .output
-        .extension()
-        .and_then(|e| e.to_str())
-        .unwrap_or("csv");
-
-    progress.set_message(format!(
-        "Writing to {:?}...",
-        args.output.file_name().unwrap_or_default()
-    ));
-
-    match output_ext.to_lowercase().as_str() {
-        "csv" => {
-            output::write_csv(
-                &args.output,
-                &result.cd_events,
-                Some(&result.metadata),
-                field_order,
-            )
-            .context("Failed to write CSV output")?;
-        }
-        "bin" => {
-            output::write_binary(&args.output, &result.cd_events, &result.metadata)
-                .context("Failed to write binary output")?;
-        }
-        _ => {
-            anyhow::bail!(
-                "Unsupported output format: .{}. Use .csv or .bin",
-                output_ext
-            );
-        }
-    }
-
-    // Write trigger events if requested
-    if let Some(trigger_path) = &args.triggers {
-        if !result.trigger_events.is_empty() {
-            output::write_trigger_csv(trigger_path, &result.trigger_events)
-                .context("Failed to write trigger CSV")?;
-
-            if !args.quiet {
-                progress.set_message(format!(
-                    "Wrote {} trigger events to {:?}",
-                    result.trigger_events.len(),
-                    trigger_path.file_name().unwrap_or_default()
-                ));
+        if !batch.triggers.is_empty() {
+            if trigger_writer.is_none() {
+                if let Some(path) = &args.triggers {
+                    trigger_writer = Some(TriggerCsvWriter::new(
+                        File::create(path).context("Failed to create trigger output")?,
+                    ));
+                }
             }
+            if let Some(writer) = &mut trigger_writer {
+                writer.write_columns(&batch.triggers)?;
+            }
+            trigger_count += batch.triggers.len() as u64;
         }
+
+        batch.clear();
+    }
+
+    output.finish(event_count)?;
+    if let Some(writer) = &mut trigger_writer {
+        writer.flush()?;
     }
 
     let total_duration = start_time.elapsed();
 
     progress.finish_with_message(format!(
         "Done! Decoded {} events in {:.2}s (sensor: {}x{})",
-        result.cd_events.len(),
+        event_count,
         total_duration.as_secs_f64(),
-        result.metadata.width,
-        result.metadata.height
+        metadata.width,
+        metadata.height
     ));
 
     if !args.quiet {
         // Print summary
-        let events_per_sec = result.cd_events.len() as f64 / total_duration.as_secs_f64();
+        let events_per_sec = event_count as f64 / total_duration.as_secs_f64();
         eprintln!();
         eprintln!("Summary:");
         eprintln!("  Input:        {:?}", args.input);
         eprintln!("  Output:       {:?}", args.output);
-        eprintln!("  CD Events:    {}", result.cd_events.len());
-        eprintln!("  Triggers:     {}", result.trigger_events.len());
-        eprintln!(
-            "  Sensor:       {}x{}",
-            result.metadata.width, result.metadata.height
-        );
+        eprintln!("  CD Events:    {}", event_count);
+        eprintln!("  Triggers:     {}", trigger_count);
+        eprintln!("  Sensor:       {}x{}", metadata.width, metadata.height);
         eprintln!("  Duration:     {:.3}s", total_duration.as_secs_f64());
         eprintln!("  Throughput:   {:.0} events/s", events_per_sec);
     }

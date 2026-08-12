@@ -2,9 +2,10 @@
 //!
 //! Supports multiple output formats including CSV, binary, and Apache Arrow IPC.
 
+use crate::sink::{EventColumns, TriggerColumns};
 use crate::types::{CdEvent, SensorMetadata, TriggerEvent};
 use std::fs::File;
-use std::io::{BufWriter, Write};
+use std::io::{BufWriter, Seek, SeekFrom, Write};
 use std::path::Path;
 use thiserror::Error;
 
@@ -109,7 +110,7 @@ impl<W: Write> CsvWriter<W> {
     /// Creates a new CSV writer.
     pub fn new(writer: W, field_order: FieldOrder) -> Self {
         Self {
-            writer: BufWriter::new(writer),
+            writer: BufWriter::with_capacity(1024 * 1024, writer),
             field_order,
         }
     }
@@ -131,38 +132,45 @@ impl<W: Write> CsvWriter<W> {
         Ok(())
     }
 
+    /// Writes a batch stored in columnar form.
+    pub fn write_columns(&mut self, events: &EventColumns) -> Result<(), OutputError> {
+        for index in 0..events.len() {
+            self.write_values(
+                events.x[index],
+                events.y[index],
+                events.polarity[index],
+                events.timestamp[index],
+            )?;
+        }
+        Ok(())
+    }
+
     /// Writes a single CD event.
     #[inline]
     fn write_event(&mut self, event: &CdEvent) -> Result<(), OutputError> {
+        self.write_values(event.x, event.y, event.polarity, event.timestamp)
+    }
+
+    #[inline]
+    fn write_values(
+        &mut self,
+        x: u16,
+        y: u16,
+        polarity: u8,
+        timestamp: u64,
+    ) -> Result<(), OutputError> {
         match self.field_order {
             FieldOrder::XYPT => {
-                writeln!(
-                    self.writer,
-                    "{},{},{},{}",
-                    event.x, event.y, event.polarity, event.timestamp
-                )?;
+                writeln!(self.writer, "{},{},{},{}", x, y, polarity, timestamp)?;
             }
             FieldOrder::TXYP => {
-                writeln!(
-                    self.writer,
-                    "{},{},{},{}",
-                    event.timestamp, event.x, event.y, event.polarity
-                )?;
+                writeln!(self.writer, "{},{},{},{}", timestamp, x, y, polarity)?;
             }
             FieldOrder::XYTP => {
-                writeln!(
-                    self.writer,
-                    "{},{},{},{}",
-                    event.x, event.y, event.timestamp, event.polarity
-                )?;
+                writeln!(self.writer, "{},{},{},{}", x, y, timestamp, polarity)?;
             }
             FieldOrder::Custom(indices) => {
-                let values = [
-                    event.x as u64,
-                    event.y as u64,
-                    event.polarity as u64,
-                    event.timestamp,
-                ];
+                let values = [x as u64, y as u64, polarity as u64, timestamp];
                 writeln!(
                     self.writer,
                     "{},{},{},{}",
@@ -189,7 +197,7 @@ impl<W: Write> TriggerCsvWriter<W> {
     /// Creates a new trigger CSV writer.
     pub fn new(writer: W) -> Self {
         Self {
-            writer: BufWriter::new(writer),
+            writer: BufWriter::with_capacity(1024 * 1024, writer),
         }
     }
 
@@ -200,6 +208,18 @@ impl<W: Write> TriggerCsvWriter<W> {
                 self.writer,
                 "{},{},{}",
                 event.value, event.id, event.timestamp
+            )?;
+        }
+        Ok(())
+    }
+
+    /// Writes a trigger batch stored in columnar form.
+    pub fn write_columns(&mut self, events: &TriggerColumns) -> Result<(), OutputError> {
+        for index in 0..events.len() {
+            writeln!(
+                self.writer,
+                "{},{},{}",
+                events.value[index], events.id[index], events.timestamp[index]
             )?;
         }
         Ok(())
@@ -220,16 +240,18 @@ impl<W: Write> TriggerCsvWriter<W> {
 /// - polarity: u8 (1 byte)
 /// - padding: u8 (1 byte, for alignment)
 /// - timestamp: u64 (8 bytes)
-///   Total: 14 bytes per event (padded to 16 for alignment)
+///   Total: 14 bytes per event (no trailing struct-alignment padding)
 pub struct BinaryWriter<W: Write> {
     writer: BufWriter<W>,
+    packed: Vec<u8>,
 }
 
 impl<W: Write> BinaryWriter<W> {
     /// Creates a new binary writer.
     pub fn new(writer: W) -> Self {
         Self {
-            writer: BufWriter::new(writer),
+            writer: BufWriter::with_capacity(1024 * 1024, writer),
+            packed: Vec::new(),
         }
     }
 
@@ -254,12 +276,35 @@ impl<W: Write> BinaryWriter<W> {
 
     /// Writes a batch of CD events.
     pub fn write_events(&mut self, events: &[CdEvent]) -> Result<(), OutputError> {
+        self.packed.clear();
+        self.packed.reserve(events.len() * 14);
         for event in events {
-            self.writer.write_all(&event.x.to_le_bytes())?;
-            self.writer.write_all(&event.y.to_le_bytes())?;
-            self.writer.write_all(&[event.polarity, 0])?; // polarity + padding
-            self.writer.write_all(&event.timestamp.to_le_bytes())?;
+            append_binary_event(
+                &mut self.packed,
+                event.x,
+                event.y,
+                event.polarity,
+                event.timestamp,
+            );
         }
+        self.writer.write_all(&self.packed)?;
+        Ok(())
+    }
+
+    /// Writes a columnar batch with one buffered write.
+    pub fn write_columns(&mut self, events: &EventColumns) -> Result<(), OutputError> {
+        self.packed.clear();
+        self.packed.reserve(events.len() * 14);
+        for index in 0..events.len() {
+            append_binary_event(
+                &mut self.packed,
+                events.x[index],
+                events.y[index],
+                events.polarity[index],
+                events.timestamp[index],
+            );
+        }
+        self.writer.write_all(&self.packed)?;
         Ok(())
     }
 
@@ -268,6 +313,25 @@ impl<W: Write> BinaryWriter<W> {
         self.writer.flush()?;
         Ok(())
     }
+}
+
+impl<W: Write + Seek> BinaryWriter<W> {
+    /// Updates the event count in a streaming binary file header.
+    pub fn update_event_count(&mut self, event_count: u64) -> Result<(), OutputError> {
+        self.writer.flush()?;
+        self.writer.seek(SeekFrom::Start(20))?;
+        self.writer.write_all(&event_count.to_le_bytes())?;
+        self.writer.seek(SeekFrom::End(0))?;
+        Ok(())
+    }
+}
+
+#[inline]
+fn append_binary_event(packed: &mut Vec<u8>, x: u16, y: u16, polarity: u8, timestamp: u64) {
+    packed.extend_from_slice(&x.to_le_bytes());
+    packed.extend_from_slice(&y.to_le_bytes());
+    packed.extend_from_slice(&[polarity, 0]);
+    packed.extend_from_slice(&timestamp.to_le_bytes());
 }
 
 /// Writes CD events to a CSV file.
@@ -314,6 +378,7 @@ pub fn write_binary<P: AsRef<Path>>(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::io::Cursor;
     use std::str::FromStr;
 
     #[test]
@@ -373,5 +438,43 @@ mod tests {
 
         let output_str = String::from_utf8(output).unwrap();
         assert!(output_str.contains("12345,100,200,1"));
+    }
+
+    #[test]
+    fn columnar_writers_match_streaming_formats() {
+        let events = EventColumns {
+            x: vec![100, 101],
+            y: vec![200, 201],
+            polarity: vec![1, 0],
+            timestamp: vec![12_345, 12_346],
+        };
+        let metadata = SensorMetadata {
+            width: 640,
+            height: 480,
+        };
+
+        let mut csv = Vec::new();
+        {
+            let mut writer = CsvWriter::new(&mut csv, FieldOrder::XYPT);
+            writer.write_header(Some(&metadata)).unwrap();
+            writer.write_columns(&events).unwrap();
+            writer.flush().unwrap();
+        }
+        assert_eq!(
+            String::from_utf8(csv).unwrap(),
+            "%geometry:640,480\n100,200,1,12345\n101,201,0,12346\n"
+        );
+
+        let mut binary = Cursor::new(Vec::new());
+        {
+            let mut writer = BinaryWriter::new(&mut binary);
+            writer.write_header(&metadata, 0).unwrap();
+            writer.write_columns(&events).unwrap();
+            writer.update_event_count(events.len() as u64).unwrap();
+            writer.flush().unwrap();
+        }
+        let bytes = binary.into_inner();
+        assert_eq!(u64::from_le_bytes(bytes[20..28].try_into().unwrap()), 2);
+        assert_eq!(bytes.len(), 28 + 2 * 14);
     }
 }

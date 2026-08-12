@@ -11,6 +11,7 @@ Usage:
 """
 
 import argparse
+import gc
 import subprocess
 import sys
 import time
@@ -40,10 +41,41 @@ def benchmark_rust_python(file_path: Path, iterations: int = 3) -> dict:
         times.append(elapsed)
         event_count = len(events)
         print(f"  Rust (Python): Run {i+1}/{iterations}: {elapsed:.3f}s")
+        del events
+        gc.collect()
 
     avg_time = sum(times) / len(times)
     return {
         "name": "Rust (Python)",
+        "avg_time": avg_time,
+        "min_time": min(times),
+        "max_time": max(times),
+        "event_count": event_count,
+        "events_per_sec": event_count / avg_time,
+    }
+
+
+def benchmark_rust_python_batches(file_path: Path, iterations: int = 3) -> dict:
+    """Benchmark bounded-memory Python decoding without retaining batches."""
+    try:
+        import evt3
+    except ImportError:
+        return None
+
+    times = []
+    event_count = 0
+    for i in range(iterations):
+        start = time.perf_counter()
+        event_count = sum(
+            len(events) for events in evt3.decode_file_batches(str(file_path))
+        )
+        elapsed = time.perf_counter() - start
+        times.append(elapsed)
+        print(f"  Rust (Python batches): Run {i+1}/{iterations}: {elapsed:.3f}s")
+
+    avg_time = sum(times) / len(times)
+    return {
+        "name": "Rust (Python batches)",
         "avg_time": avg_time,
         "min_time": min(times),
         "max_time": max(times),
@@ -196,6 +228,7 @@ def main():
 
     print("Running benchmarks...")
     results.append(benchmark_rust_python(args.file, args.iterations))
+    results.append(benchmark_rust_python_batches(args.file, args.iterations))
     results.append(benchmark_rust_cli(args.file, args.iterations))
     results.append(benchmark_cpp_reference(args.file, args.iterations))
 

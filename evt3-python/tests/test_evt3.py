@@ -96,6 +96,73 @@ class TestDecodeBytes:
         assert 'Events' in repr_str
         assert '1280x720' in repr_str
 
+    def test_stateful_decoder_matches_legacy_function(self, synthetic_evt3_bytes):
+        """Chunk boundaries must not change the legacy decode result."""
+        import evt3
+
+        expected = evt3.decode_bytes(synthetic_evt3_bytes)
+        decoder = evt3.Decoder()
+        batches = [
+            decoder.feed(synthetic_evt3_bytes[:5]),
+            decoder.feed(synthetic_evt3_bytes[5:]),
+        ]
+        decoder.finish()
+
+        assert isinstance(batches[0], evt3.Events)
+        assert np.array_equal(np.concatenate([batch.x for batch in batches]), expected.x)
+        assert np.array_equal(np.concatenate([batch.y for batch in batches]), expected.y)
+        assert np.array_equal(np.concatenate([batch.p for batch in batches]), expected.p)
+        assert np.array_equal(np.concatenate([batch.t for batch in batches]), expected.t)
+
+    def test_file_batch_iterator_matches_decode_file(self, synthetic_evt3_bytes, tmp_path):
+        """The optional bounded-memory workflow preserves the old API result."""
+        import evt3
+
+        path = tmp_path / "synthetic.raw"
+        path.write_bytes(synthetic_evt3_bytes)
+        expected = evt3.decode_file(str(path))
+        decoder = evt3.decode_file_batches(str(path), batch_bytes=5)
+        batches = list(decoder)
+
+        assert decoder.sensor_size == expected.sensor_size
+        assert all(isinstance(batch, evt3.Events) for batch in batches)
+        assert np.array_equal(np.concatenate([batch.x for batch in batches]), expected.x)
+        assert np.array_equal(np.concatenate([batch.y for batch in batches]), expected.y)
+        assert np.array_equal(np.concatenate([batch.p for batch in batches]), expected.p)
+        assert np.array_equal(np.concatenate([batch.t for batch in batches]), expected.t)
+
+    def test_file_batch_iterator_with_triggers(self, synthetic_evt3_bytes, tmp_path):
+        """The trigger-aware iterator exposes every decoded external trigger."""
+        import evt3
+
+        trigger_word = struct.pack("<H", 0xA301)  # channel 3, rising edge
+        path = tmp_path / "synthetic-with-trigger.raw"
+        path.write_bytes(synthetic_evt3_bytes + trigger_word)
+
+        expected_events, expected_triggers = evt3.decode_file_with_triggers(str(path))
+        decoder = evt3.decode_file_batches_with_triggers(str(path), batch_bytes=5)
+        batches = list(decoder)
+        event_batches = [events for events, _triggers in batches]
+        trigger_batches = [triggers for _events, triggers in batches]
+
+        assert decoder.sensor_size == expected_events.sensor_size
+        assert all(isinstance(events, evt3.Events) for events in event_batches)
+        assert all(isinstance(triggers, evt3.TriggerEvents) for triggers in trigger_batches)
+        assert np.array_equal(
+            np.concatenate([batch.x for batch in event_batches]), expected_events.x
+        )
+        assert np.array_equal(
+            np.concatenate([batch.timestamp for batch in trigger_batches]),
+            expected_triggers.timestamp,
+        )
+        assert np.array_equal(
+            np.concatenate([batch.id for batch in trigger_batches]), expected_triggers.id
+        )
+        assert np.array_equal(
+            np.concatenate([batch.value for batch in trigger_batches]),
+            expected_triggers.value,
+        )
+
 
 class TestDecodeFile:
     """Tests for decode_file function (requires real test data)."""

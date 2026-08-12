@@ -15,6 +15,10 @@ are handled correctly by buffering the dangling byte until the next call.
   allowing incremental processing.
 - `finish_stream` must be called when the stream is complete; it returns an
   error if a half-word is still buffered, guarding against truncated input.
+- Byte chunks are decoded directly. The decoder no longer materializes an
+  intermediate `Vec<u16>` for every chunk.
+- Python exposes the same stateful workflow through `evt3.Decoder.feed()` and
+  `evt3.Decoder.finish()`.
 - `finish_stream_lenient` is available for callers that know a trailing byte is
   benign (e.g. legacy `.raw` files ending with a newline).
 
@@ -30,6 +34,14 @@ for chunk in byte_stream {
 }
 
 decoder.finish_stream()?;
+```
+
+```python
+decoder = evt3.Decoder(sensor_width=1280, sensor_height=720)
+for raw_chunk in camera_chunks:
+    events = decoder.feed(raw_chunk)
+    process(events)
+decoder.finish()
 ```
 
 ## Verification
