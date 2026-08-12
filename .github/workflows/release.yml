@@ -119,6 +119,55 @@ jobs:
             artifacts/wheels-*/*.whl
           generate_release_notes: true
 
+  publish-crates:
+    name: Publish to crates.io
+    needs: [build-binaries]
+    runs-on: ubuntu-latest
+    env:
+      CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      # The evt3 library must land first: evt3-cli depends on it by version,
+      # so the CLI cannot be packaged until the library is in the index.
+      - name: Publish evt3 library
+        run: |
+          if cargo publish -p evt3; then
+            echo "evt3 published"
+          elif cargo search evt3 | grep -q "^evt3 = \"${GITHUB_REF_NAME#v}\""; then
+            echo "evt3 ${GITHUB_REF_NAME#v} already published, continuing"
+          else
+            echo "evt3 publish failed" >&2
+            exit 1
+          fi
+
+      - name: Wait for evt3 in the index
+        run: |
+          for i in $(seq 1 30); do
+            if cargo search evt3 | grep -q "^evt3 = \"${GITHUB_REF_NAME#v}\""; then
+              echo "evt3 ${GITHUB_REF_NAME#v} is available"
+              exit 0
+            fi
+            echo "attempt $i: not in index yet, waiting"
+            sleep 10
+          done
+          echo "evt3 did not appear in the index in time" >&2
+          exit 1
+
+      - name: Publish evt3-cli
+        run: |
+          if cargo publish -p evt3-cli; then
+            echo "evt3-cli published"
+          elif cargo search evt3-cli | grep -q "^evt3-cli = \"${GITHUB_REF_NAME#v}\""; then
+            echo "evt3-cli ${GITHUB_REF_NAME#v} already published, continuing"
+          else
+            echo "evt3-cli publish failed" >&2
+            exit 1
+          fi
+
   publish-pypi:
     name: Publish to PyPI
     needs: [build-wheels]
