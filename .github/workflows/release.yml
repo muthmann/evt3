@@ -133,39 +133,30 @@ jobs:
 
       # The evt3 library must land first: evt3-cli depends on it by version,
       # so the CLI cannot be packaged until the library is in the index.
+      # `cargo publish` already blocks until the new version is readable from
+      # the index, so no separate wait step is needed between the two.
+      #
+      # Idempotency is checked against the sparse index, not `cargo search`.
+      # `cargo search` queries the crates.io search API, which lags behind
+      # publication independently and is not a reliable readiness signal.
       - name: Publish evt3 library
         run: |
-          if cargo publish -p evt3; then
-            echo "evt3 published"
-          elif cargo search evt3 | grep -q "^evt3 = \"${GITHUB_REF_NAME#v}\""; then
-            echo "evt3 ${GITHUB_REF_NAME#v} already published, continuing"
+          version="${GITHUB_REF_NAME#v}"
+          if curl -sf https://index.crates.io/ev/t3/evt3 \
+              | grep -q "\"vers\":\"$version\""; then
+            echo "evt3 $version already published, skipping"
           else
-            echo "evt3 publish failed" >&2
-            exit 1
+            cargo publish -p evt3
           fi
-
-      - name: Wait for evt3 in the index
-        run: |
-          for i in $(seq 1 30); do
-            if cargo search evt3 | grep -q "^evt3 = \"${GITHUB_REF_NAME#v}\""; then
-              echo "evt3 ${GITHUB_REF_NAME#v} is available"
-              exit 0
-            fi
-            echo "attempt $i: not in index yet, waiting"
-            sleep 10
-          done
-          echo "evt3 did not appear in the index in time" >&2
-          exit 1
 
       - name: Publish evt3-cli
         run: |
-          if cargo publish -p evt3-cli; then
-            echo "evt3-cli published"
-          elif cargo search evt3-cli | grep -q "^evt3-cli = \"${GITHUB_REF_NAME#v}\""; then
-            echo "evt3-cli ${GITHUB_REF_NAME#v} already published, continuing"
+          version="${GITHUB_REF_NAME#v}"
+          if curl -sf https://index.crates.io/ev/t3/evt3-cli \
+              | grep -q "\"vers\":\"$version\""; then
+            echo "evt3-cli $version already published, skipping"
           else
-            echo "evt3-cli publish failed" >&2
-            exit 1
+            cargo publish -p evt3-cli
           fi
 
   publish-pypi:
