@@ -20,6 +20,8 @@ Example:
     >>> df = pd.DataFrame(events.to_dict())
 """
 
+from importlib.metadata import PackageNotFoundError, version as _package_version
+
 from . import augur
 from ._evt3 import (
     Decoder as _Decoder,
@@ -32,7 +34,12 @@ from ._evt3 import (
 )
 from .events import Events
 
-__version__ = "0.3.0"
+# Read from the installed distribution metadata rather than a literal. A
+# hardcoded value silently goes stale: 0.4.0 shipped reporting "0.3.0".
+try:
+    __version__ = _package_version("evt3")
+except PackageNotFoundError:  # pragma: no cover - source tree without install
+    __version__ = "unknown"
 
 
 def _wrap_events(events):

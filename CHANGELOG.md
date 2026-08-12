@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- `evt3.__version__` reported a stale hardcoded value — the published 0.4.0
+  wheel identified itself as `0.3.0`. It is now read from the installed
+  distribution metadata, so it cannot drift from the release again, and a test
+  asserts the two agree.
+- The CLI identified itself as `evt3-decode` in `--version` and `--help`, while
+  the installed binary is `evt3`
+- `--help` showed the crates.io listing description, which is written for the
+  registry and reads oddly for someone already running the tool
+
 ## [0.4.0] - 2026-08-12
 
 ### Added

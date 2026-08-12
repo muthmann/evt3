@@ -16,8 +16,15 @@ use std::time::Instant;
 ///
 /// Decodes .raw files in EVT 3.0 format to human-readable CSV or efficient binary formats.
 #[derive(Parser, Debug)]
-#[command(name = "evt3-decode")]
-#[command(author, version, about, long_about = None)]
+#[command(name = "evt3")]
+// `about` is set explicitly rather than inherited from the Cargo description,
+// which is written for the crates.io listing and reads oddly in --help.
+#[command(
+    about = "Decode EVT3 (EVT 3.0) event camera recordings to CSV or binary",
+    author,
+    version,
+    long_about = None
+)]
 struct Args {
     /// Input EVT3 .raw file path
     #[arg(value_name = "INPUT")]

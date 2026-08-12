@@ -9,6 +9,22 @@ import pytest
 import numpy as np
 
 
+class TestPackageMetadata:
+    """Tests for package-level metadata."""
+
+    def test_version_matches_distribution_metadata(self):
+        """`__version__` must not drift from the installed distribution.
+
+        It was previously a hardcoded literal, and 0.4.0 shipped reporting
+        "0.3.0" because the release bump missed it.
+        """
+        from importlib.metadata import version
+
+        import evt3
+
+        assert evt3.__version__ == version("evt3")
+
+
 class TestDecodeBytes:
     """Tests for decode_bytes function."""
 
