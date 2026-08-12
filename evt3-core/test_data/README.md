@@ -16,10 +16,10 @@ Place them directly in this directory, then run:
 
 ```bash
 # EVT3 tests
-cargo test -p evt3-core
+cargo test -p evt3
 
 # HDF5 tests (requires libhdf5)
-HDF5_DIR=$(brew --prefix hdf5) cargo test -p evt3-core --features hdf5
+HDF5_DIR=$(brew --prefix hdf5) cargo test -p evt3 --features hdf5
 ```
 
 ## Verifying Tests Actually Ran
@@ -29,7 +29,7 @@ absent or the ECF compression plugin is not installed. To confirm which tests
 ran versus skipped:
 
 ```bash
-cargo test -p evt3-core --features hdf5 -- --show-output
+cargo test -p evt3 --features hdf5 -- --show-output
 ```
 
 Skipped tests print a `[SKIP]` line that explains the reason.

@@ -5,16 +5,16 @@
 //!
 //! Note on skipped tests: real-data tests that skip because a fixture is absent
 //! or the ECF plugin is not installed still report `ok`. Run with
-//! `cargo test -p evt3-core --features hdf5 -- --show-output` to see which
+//! `cargo test -p evt3 --features hdf5 -- --show-output` to see which
 //! tests were skipped and why.
 
-use evt3_core::{output, Evt3Decoder, FieldOrder};
+use evt3::{output, Evt3Decoder, FieldOrder};
 use std::fs::File;
 use std::io::{BufRead, BufReader, Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
 
 #[cfg(feature = "hdf5")]
-use evt3_core::{CdEvent, ColumnarEventSink, DecodeError, EventFileReader, TriggerEvent};
+use evt3::{CdEvent, ColumnarEventSink, DecodeError, EventFileReader, TriggerEvent};
 #[cfg(feature = "hdf5")]
 use hdf5::types::VarLenUnicode;
 #[cfg(feature = "hdf5")]
@@ -249,7 +249,7 @@ fn test_hdf5_requires_feature() {
         .expect_err("Decoding .h5 without feature should fail");
 
     match err {
-        evt3_core::DecodeError::InvalidFormat(message) => {
+        evt3::DecodeError::InvalidFormat(message) => {
             assert!(message.contains("HDF5 input requires building"));
         }
         other => panic!("Unexpected error: {other:?}"),
@@ -359,7 +359,7 @@ fn test_hdf5_decode_requires_events_dataset() {
 /// Returns true when an HDF5 decode error is caused by a missing compression
 /// plugin (e.g. the Prophesee ECF codec). Real-data tests skip in that case.
 #[cfg(feature = "hdf5")]
-fn is_missing_plugin(err: &evt3_core::DecodeError) -> bool {
+fn is_missing_plugin(err: &evt3::DecodeError) -> bool {
     let msg = err.to_string();
     // Match HDF5 library messages specifically about missing/unloadable plugins.
     // Avoid matching "filter" alone — too broad.
@@ -370,7 +370,7 @@ fn is_missing_plugin(err: &evt3_core::DecodeError) -> bool {
 /// Returns `None` (and prints a `[SKIP]` line) if the ECF plugin is absent.
 /// Panics on any other error.
 #[cfg(feature = "hdf5")]
-fn decode_hdf5_or_skip(test_name: &str, path: &std::path::Path) -> Option<evt3_core::DecodeResult> {
+fn decode_hdf5_or_skip(test_name: &str, path: &std::path::Path) -> Option<evt3::DecodeResult> {
     match Evt3Decoder::new().decode_file(path) {
         Ok(r) => Some(r),
         Err(ref e) if is_missing_plugin(e) => {

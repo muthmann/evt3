@@ -19,13 +19,13 @@ cd "${repository_root}"
 echo "Building and running the representative real-file decode workload..."
 CARGO_TARGET_DIR="${generate_target}" \
 RUSTFLAGS="-Cprofile-generate=${profile_dir}" \
-    cargo test --release -p evt3-core test_decode_performance -- --nocapture
+    cargo test --release -p evt3 test_decode_performance -- --nocapture
 
 "${llvm_profdata}" merge -o "${profile_dir}/merged.profdata" "${profile_dir}"
 
 echo "Building the workspace with the collected optimization profile..."
 CARGO_TARGET_DIR="${use_target}" \
 RUSTFLAGS="-Cprofile-use=${profile_dir}/merged.profdata -Cllvm-args=-pgo-warn-missing-function" \
-    cargo build --release -p evt3-core -p evt3-cli
+    cargo build --release -p evt3 -p evt3-cli
 
 echo "PGO artifacts: ${use_target}/release"

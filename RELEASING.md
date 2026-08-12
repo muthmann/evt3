@@ -15,9 +15,11 @@ We use Semantic Versioning (SemVer): `MAJOR.MINOR.PATCH`
 1. [ ] All tests pass on CI
 2. [ ] CHANGELOG.md updated with release notes
 3. [ ] Version numbers updated in:
-   - `Cargo.toml` (workspace version)
+   - `Cargo.toml` (`workspace.package.version`)
+   - `Cargo.toml` (`workspace.dependencies.evt3.version` — must match)
    - `evt3-python/pyproject.toml`
-4. [ ] Documentation is up to date
+4. [ ] Documentation is up to date, including the `evt3` dependency example in
+   `docs/features/hdf5-file-support.md`, which pins a minor version
 5. [ ] Benchmarks run and results updated if needed
 
 ## Release Steps
@@ -45,12 +47,17 @@ The GitHub Actions workflow will automatically:
 - Build release binaries for all platforms
 - Create a GitHub Release with binaries attached
 - Publish to PyPI
-- Publish to crates.io (if configured)
+- Publish the `evt3` library and then `evt3-cli` to crates.io
+
+crates.io publishing needs the repository secret `CARGO_REGISTRY_TOKEN`.
+Without it the `publish-crates` job fails and the crates stay at the previous
+version.
 
 ### 4. Verify Release
 
-- Check [GitHub Releases](https://github.com/your-username/evt3/releases)
+- Check [GitHub Releases](https://github.com/muthmann/evt3/releases)
 - Verify PyPI: `pip install evt3==0.x.y`
+- Verify crates.io: `cargo install evt3-cli --version 0.x.y`
 - Test installation on a clean environment
 
 ## Manual Release (if needed)
@@ -75,8 +82,11 @@ maturin publish --skip-existing
 
 ### Publish to crates.io
 
+Publish in this order. `evt3-cli` depends on the `evt3` library by version, so it
+cannot be packaged until `evt3` is in the index.
+
 ```bash
-cargo publish -p evt3-core
+cargo publish -p evt3
 cargo publish -p evt3-cli
 ```
 

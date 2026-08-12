@@ -2,7 +2,7 @@
 
 ## Summary
 
-`evt3-core` can now decode Prophesee HDF5 recordings (`.h5` and `.hdf5`) through the existing `Evt3Decoder::decode_file` entry point when built with the `hdf5` cargo feature. The CLI and Python bindings expose the same feature as a passthrough, so callers do not need a separate API.
+`evt3` can now decode Prophesee HDF5 recordings (`.h5` and `.hdf5`) through the existing `Evt3Decoder::decode_file` entry point when built with the `hdf5` cargo feature. The CLI and Python bindings expose the same feature as a passthrough, so callers do not need a separate API.
 
 ## User Impact
 
@@ -21,14 +21,14 @@ consequences for each distribution channel:
 | Pre-built CLI binaries (GitHub Releases) | **No** | Binaries are built without `--features hdf5` |
 | `cargo install evt3-cli` | **No** (default) | Must add `--features hdf5` and have `libhdf5` installed |
 | Build from source | **Yes** | See below |
-| `evt3-core` as a crate dependency | **Yes, opt-in** | Add `features = ["hdf5"]`; requires `libhdf5-dev` at build time |
+| `evt3` as a crate dependency | **Yes, opt-in** | Add `features = ["hdf5"]`; requires `libhdf5-dev` at build time |
 
-**Using evt3-core as a dependency with HDF5:**
+**Using evt3 as a dependency with HDF5:**
 
 ```toml
 # Cargo.toml
 [dependencies]
-evt3-core = { version = "0.2", features = ["hdf5"] }
+evt3 = { version = "0.3", features = ["hdf5"] }
 ```
 
 Your users must have `libhdf5-dev` installed (`brew install hdf5` /
@@ -92,13 +92,13 @@ Notes:
 ```bash
 HDF5_PLUGIN_PATH=/your/plugin/path \
 HDF5_DIR="$(brew --prefix hdf5)" \
-cargo test -p evt3-core --features hdf5 -- --show-output
+cargo test -p evt3 --features hdf5 -- --show-output
 ```
 
 ## Verification
 
-- `cargo test -p evt3-core test_hdf5_requires_feature -- --nocapture`
-- `HDF5_DIR=/opt/homebrew/opt/hdf5 cargo test -p evt3-core --features hdf5 test_hdf5_ -- --nocapture`
-- `HDF5_DIR=/opt/homebrew/opt/hdf5 cargo test -p evt3-core --features hdf5 test_hdf5_real_file_ -- --show-output`
+- `cargo test -p evt3 test_hdf5_requires_feature -- --nocapture`
+- `HDF5_DIR=/opt/homebrew/opt/hdf5 cargo test -p evt3 --features hdf5 test_hdf5_ -- --nocapture`
+- `HDF5_DIR=/opt/homebrew/opt/hdf5 cargo test -p evt3 --features hdf5 test_hdf5_real_file_ -- --show-output`
 - `cargo check -p evt3-cli --features hdf5`
 - `cargo check -p evt3-python --features hdf5`

@@ -37,13 +37,13 @@ jobs:
         run: cargo fmt --all -- --check
       
       - name: Clippy
-        run: cargo clippy --all-targets -p evt3-core -p evt3-cli -- -D warnings
+        run: cargo clippy --all-targets -p evt3 -p evt3-cli -- -D warnings
       
       - name: Build
-        run: cargo build -p evt3-core -p evt3-cli
+        run: cargo build -p evt3 -p evt3-cli
       
       - name: Run unit tests
-        run: cargo test -p evt3-core --lib
+        run: cargo test -p evt3 --lib
 
   rust-tests-hdf5:
     name: Rust Tests (HDF5 feature)
@@ -71,13 +71,13 @@ jobs:
           sudo apt-get install -y libhdf5-dev
 
       - name: Clippy (hdf5 feature)
-        run: cargo clippy -p evt3-core -p evt3-cli --features hdf5 -- -D warnings
+        run: cargo clippy -p evt3 -p evt3-cli --features hdf5 -- -D warnings
 
       - name: Run unit tests (hdf5 feature)
-        run: cargo test -p evt3-core --lib --features hdf5
+        run: cargo test -p evt3 --lib --features hdf5
 
       - name: Run integration tests (hdf5 feature, synthetic fixtures only)
-        run: cargo test -p evt3-core --test integration_tests --features hdf5 -- --show-output
+        run: cargo test -p evt3 --test integration_tests --features hdf5 -- --show-output
 
   python-bindings-msrv:
     name: Python Bindings (Rust 1.83)

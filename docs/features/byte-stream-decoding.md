@@ -2,7 +2,7 @@
 
 ## Summary
 
-`evt3-core` supports incremental decoding of raw EVT3 byte streams through
+`evt3` supports incremental decoding of raw EVT3 byte streams through
 `Evt3Decoder::decode_bytes` and `Evt3Decoder::finish_stream`. Chunks of any
 size — including odd-length chunks that split 16-bit words across boundaries —
 are handled correctly by buffering the dangling byte until the next call.
@@ -46,5 +46,5 @@ decoder.finish()
 
 ## Verification
 
-- `cargo test -p evt3-core` — unit tests cover byte-by-byte, odd-chunk, and
+- `cargo test -p evt3` — unit tests cover byte-by-byte, odd-chunk, and
   multi-split scenarios as well as finish_stream error and leniency paths.

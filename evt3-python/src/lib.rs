@@ -3,7 +3,7 @@
 //! This module provides Python bindings using PyO3 that allow efficient
 //! decoding of EVT 3.0 files with direct numpy array access to the decoded data.
 
-use evt3_core::{
+use evt3::{
     ColumnarDecodeResult, ColumnarEventSink, EventColumns, EventFileReader, Evt3Decoder,
     TriggerColumns, DEFAULT_BATCH_BYTES,
 };
@@ -477,7 +477,7 @@ fn events_from_result(py: Python<'_>, result: ColumnarDecodeResult) -> Events {
     )
 }
 
-fn decode_error(error: evt3_core::DecodeError) -> PyErr {
+fn decode_error(error: evt3::DecodeError) -> PyErr {
     PyIOError::new_err(format!("Failed to decode EVT3 data: {error}"))
 }
 

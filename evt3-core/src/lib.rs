@@ -7,7 +7,7 @@
 //! # File decode
 //!
 //! ```no_run
-//! use evt3_core::Evt3Decoder;
+//! use evt3::Evt3Decoder;
 //!
 //! let mut decoder = Evt3Decoder::new();
 //! let result = decoder.decode_file("recording.raw").unwrap();
@@ -19,7 +19,7 @@
 //! # Streaming bytes
 //!
 //! ```no_run
-//! use evt3_core::Evt3Decoder;
+//! use evt3::Evt3Decoder;
 //!
 //! let mut decoder = Evt3Decoder::new();
 //! let mut cd_events = Vec::new();

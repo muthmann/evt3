@@ -1,13 +1,30 @@
-# EVT3 Decoder
+# evt3 — fast EVT3 decoder for Prophesee event cameras
 
 [![CI](https://github.com/muthmann/evt3/actions/workflows/ci.yml/badge.svg)](https://github.com/muthmann/evt3/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/evt3)](https://pypi.org/project/evt3/)
+[![crates.io](https://img.shields.io/crates/v/evt3)](https://crates.io/crates/evt3)
+[![docs.rs](https://img.shields.io/docsrs/evt3)](https://docs.rs/evt3)
+[![Python versions](https://img.shields.io/pypi/pyversions/evt3)](https://pypi.org/project/evt3/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE-MIT)
 
-High-performance EVT 3.0 raw data decoder for [Prophesee](https://www.prophesee.ai/) event cameras, written in Rust.
+Read [Prophesee](https://www.prophesee.ai/) and Metavision event camera
+recordings into NumPy, CSV, or Rust. `evt3` decodes the EVT3 (EVT 3.0)
+encoding used by Prophesee event-based vision sensors, from `.raw` and
+optionally HDF5 files. It ships as a command-line tool, a Python package, and
+a Rust library.
 
 **1.62x faster than the optimized C++ reference** in a like-for-like full-CSV
 benchmark, with byte-identical checked output.
+
+Built for event-based vision, neuromorphic engineering, and DVS data analysis
+when you need event streams as plain `x`, `y`, `p`, `t` arrays without
+installing a full camera SDK.
+
+```bash
+pip install evt3         # Python + NumPy
+cargo install evt3-cli   # command-line tool
+cargo add evt3           # Rust library
+```
 
 ## Features
 
@@ -20,6 +37,19 @@ benchmark, with byte-identical checked output.
 - 🔧 **Customizable** - Configurable output field order
 
 ## Quick Start
+
+### Install with Cargo
+
+```bash
+cargo install evt3-cli
+```
+
+The `evt3-cli` crate installs a binary named `evt3`. To use the decoder as a
+Rust library instead, depend on the `evt3` crate:
+
+```bash
+cargo add evt3
+```
 
 ### One-Line Install (Linux/macOS)
 
@@ -229,8 +259,12 @@ timestamp ordering before sending so mistakes fail close to the Python code.
 
 ### Rust Library
 
+```bash
+cargo add evt3
+```
+
 ```rust
-use evt3_core::Evt3Decoder;
+use evt3::Evt3Decoder;
 
 let mut decoder = Evt3Decoder::new();
 let result = decoder.decode_file("recording.raw")?;
@@ -246,7 +280,7 @@ For live camera pipelines or embedded integrations, you can stream raw USB
 packet bytes directly into the decoder without converting to `Vec<u16>` first:
 
 ```rust
-use evt3_core::Evt3Decoder;
+use evt3::Evt3Decoder;
 
 let mut decoder = Evt3Decoder::new();
 let mut cd_events = Vec::new();
@@ -259,7 +293,7 @@ for chunk in usb_packet_chunks {
 decoder.finish_stream()?;
 ```
 
-This keeps `evt3-core` usable in incremental preview paths while preserving the
+This keeps `evt3` usable in incremental preview paths while preserving the
 existing file and word-based APIs.
 
 Notes:
@@ -374,9 +408,9 @@ For full specification: [Prophesee EVT 3.0 Documentation](https://docs.prophesee
 
 ```
 evt3/
-├── evt3-core/       # Core Rust decoder library
-├── evt3-cli/        # Command-line tool
-├── evt3-python/     # Python bindings (PyO3)
+├── evt3-core/       # Rust decoder library      -> crate `evt3`
+├── evt3-cli/        # Command-line tool         -> crate `evt3-cli`, binary `evt3`
+├── evt3-python/     # Python bindings (PyO3)    -> PyPI package `evt3`
 ├── benchmarks/      # Performance benchmarks
 └── test_data/       # Sample EVT3 files
 ```
