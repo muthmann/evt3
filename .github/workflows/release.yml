@@ -73,15 +73,16 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13']
+        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13', '3.14', '3.14t']
     steps:
       - uses: actions/checkout@v4
       
       - name: Install uv
-        uses: astral-sh/setup-uv@v4
+        uses: astral-sh/setup-uv@v6
       
       - name: Set up Python
-        uses: actions/setup-python@v5
+        id: python
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -90,7 +91,7 @@ jobs:
       
       - name: Build wheels
         working-directory: evt3-python
-        run: uv tool run maturin build --release --out dist --interpreter python
+        run: uv tool run maturin build --release --out dist --interpreter "${{ steps.python.outputs.python-path }}"
       
       - name: Upload wheels
         uses: actions/upload-artifact@v4

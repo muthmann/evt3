@@ -67,7 +67,8 @@ Or with pip:
 pip install evt3
 ```
 
-Published wheels target CPython 3.9 through 3.13.
+Published wheels target CPython 3.9 through 3.14, including the free-threaded
+CPython 3.14 build.
 
 > **Note:** The pip package supports `.raw` files only. HDF5 (`.h5`/`.hdf5`)
 > requires building from source — see [HDF5 Inputs](#hdf5-inputs) below.
@@ -91,7 +92,7 @@ HDF5_DIR="$(brew --prefix hdf5)" cargo build --release -p evt3-cli --features hd
 # Optional: Install to PATH
 cp target/release/evt3 ~/.local/bin/
 
-# Build Python package (requires Python 3.9+, uv + Rust)
+# Build Python package (requires Python 3.9+, uv + Rust 1.83+)
 cd evt3-python
 uv venv
 uv pip install maturin

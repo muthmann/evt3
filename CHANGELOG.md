@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Python 3.14 and free-threaded Python 3.14 support, including CI coverage and
+  release wheels for both interpreter variants
+
+### Changed
+
+- Updated the Python bindings to PyO3 0.29 and `numpy` 0.29
+- Raised the Rust requirement for the Python bindings to Rust 1.83
+
 ## [0.2.0] - 2026-03-08
 
 ### Added

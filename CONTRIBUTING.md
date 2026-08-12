@@ -6,8 +6,8 @@ Thank you for your interest in contributing! This document provides guidelines f
 
 ### Prerequisites
 
-- **Rust**: 1.70+ ([rustup.rs](https://rustup.rs/))
-- **Python**: 3.8+ with pip
+- **Rust**: 1.83+ ([rustup.rs](https://rustup.rs/))
+- **Python**: 3.9+ with pip
 - **maturin**: For building Python bindings
 
 ### Getting Started

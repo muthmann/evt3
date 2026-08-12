@@ -4,6 +4,9 @@
 
 Accepted
 
+Extended by [ADR 0004](./0004-python-314-and-free-threading.md) for CPython
+3.14 and free-threaded CPython 3.14 support.
+
 ## Context
 
 The package metadata still advertised Python 3.8 support even though Python 3.8
