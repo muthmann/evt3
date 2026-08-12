@@ -56,3 +56,10 @@ On macOS, use Instruments with the Time Profiler and Allocations templates.
 The Python benchmark releases each result between iterations. Its full-memory
 and bounded-batch results measure decode-only workflows. CLI and C++ results
 include output serialization and must not be used as pure-decoder baselines.
+
+For the current like-for-like CSV result, both CLIs decode the same complete
+recording, format CSV, and write to the platform null device. The measured Rust
+mean is 7.414 s versus 12.028 s for the `-O3 -DNDEBUG` C++ reference, a 1.62x
+speedup. C++ used less maximum resident memory in the instrumented runs. Exact
+methodology and raw ranges are in the
+[optimization report](../../benchmarks/optimization-results-2026-08-12.md).

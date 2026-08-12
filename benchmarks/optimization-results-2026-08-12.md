@@ -72,6 +72,29 @@ Calculated improvement:
 CSV and binary output from both CLI versions were also compared byte for byte
 on an 8-MiB raw-file prefix and matched.
 
+## Like-for-Like C++ Reference Comparison
+
+The optimized Rust CLI and the C++ reference were also measured with identical
+work. Both decoded the complete `laser.raw`, formatted CSV, and wrote the
+result to `/dev/null`. The C++ source was freshly compiled with Apple Clang 17
+using `-O3 -DNDEBUG -std=c++17`. After one warm-up per implementation, five
+measured runs used alternating order.
+
+| Decoder | Mean time | Median | Range | Events/sec | Speedup |
+|---|---:|---:|---:|---:|---:|
+| **Rust CLI** | **7.414 s** | 7.390 s | 7.20-7.67 s | **15.69M/s** | **1.62x** |
+| C++ reference | 12.028 s | 11.570 s | 11.46-13.33 s | 9.67M/s | 1.00x |
+
+One additional instrumented run measured maximum RSS of 63.3 MB for Rust and
+28.3 MB for C++. Thus Rust was 1.62x faster for this workload, while C++ used
+less than half the maximum resident memory. These memory values are individual
+observations, not five-run means.
+
+CSV output was byte-identical for an 8-MiB input prefix. Both files had SHA-256
+`398d63a52eeb7291caa1346037f674ef0b6209772d3c512e2aa6c70b9aed12f4`.
+This comparison is separate from Python decode-only timings because Python does
+not format or write CSV.
+
 ## Core Hot Path
 
 An isolated sparse-vector prototype changed the real-file Rust decode from

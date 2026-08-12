@@ -6,16 +6,17 @@
 
 High-performance EVT 3.0 raw data decoder for [Prophesee](https://www.prophesee.ai/) event cameras, written in Rust.
 
-**5.6x faster than the C++ reference implementation** with byte-for-byte identical output.
+**1.62x faster than the optimized C++ reference** in a like-for-like full-CSV
+benchmark, with byte-identical checked output.
 
 ## Features
 
-- 🚀 **High Performance** - 50M+ events/second, 5.6x faster than C++ reference
+- 🚀 **High Performance** - 55M events/second for Python decode-only and 1.62x faster than C++ for full CSV output
 - 📦 **Multiple Interfaces** - CLI tool, Python bindings, Rust library
 - 🐍 **NumPy-native Python** - stable `Events` arrays for analysis without clone-on-access surprises
 - 🔭 **AugurRS Ingress** - publish decoded or transformed NumPy event arrays into [AugurRS](https://github.com/muthmann/augur-rs) for interactive preview, 3D inspection, viewer tools, and plugin workflows
 - 🧪 **Optional HDF5 Input** - `.h5` and `.hdf5` support behind a cargo feature
-- ✅ **Validated** - Output matches C++ reference implementation exactly
+- ✅ **Validated** - Checked CSV output matches the C++ reference byte for byte
 - 🔧 **Customizable** - Configurable output field order
 
 ## Quick Start
@@ -310,20 +311,26 @@ Notes:
 
 ## Benchmarks
 
-Tested on Apple M1 with `laser.raw` (325MB, 116M events):
+Tested on Apple Silicon macOS with `laser.raw` (325 MB, 116,300,447 events).
+Both CLI implementations decoded the complete file, formatted the same CSV,
+and wrote it to `/dev/null`. Each mean uses five alternating measured runs
+after one warm-up per implementation.
 
-| Decoder | Events/sec | Speedup |
-|---------|------------|---------|
-| **Rust (Python)** | 49M/s | **5.6x** |
-| Rust CLI | 12M/s | 1.3x |
-| C++ Reference | 9M/s | 1.0x |
+| Decoder | Mean time | Events/sec | Speedup |
+|---|---:|---:|---:|
+| **Rust CLI** | **7.414 s** | **15.69M/s** | **1.62x** |
+| C++ reference (`-O3 -DNDEBUG`) | 12.028 s | 9.67M/s | 1.00x |
 
-> **Note:** Python benchmark measures pure decode speed. CLI benchmarks include CSV file I/O overhead.
+An instrumented run measured 63.3 MB maximum RSS for Rust and 28.3 MB for
+C++. Rust is faster in this workload; the C++ reference uses less memory. The
+CSV outputs had the same SHA-256 hash on an 8-MiB input prefix. Python's
+2.108-second full-memory decode is reported separately because it does not
+format CSV and is not directly comparable with this table.
 
 Run benchmarks yourself:
 ```bash
 cargo bench
-python benchmarks/benchmark.py
+python benchmarks/benchmark.py --csv-comparison-only --iterations 5
 ```
 
 ## Output Formats
