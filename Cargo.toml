@@ -21,3 +21,11 @@ categories = ["parser-implementations", "encoding", "science"]
 [workspace.dependencies]
 thiserror = "1.0"
 byteorder = "1.5"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+
+[profile.bench]
+lto = "thin"
+codegen-units = 1

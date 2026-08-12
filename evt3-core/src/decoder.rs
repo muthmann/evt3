@@ -4,7 +4,10 @@
 //! timestamp, coordinates, and polarity across events.
 
 use crate::parser;
-use crate::types::{CdEvent, DecodeResult, RawEventType, SensorMetadata, TriggerEvent};
+use crate::sink::{ColumnarEventSink, EventSink, VecEventSink};
+use crate::types::{
+    CdEvent, ColumnarDecodeResult, DecodeResult, RawEventType, SensorMetadata, TriggerEvent,
+};
 use std::fs::File;
 use std::io::{BufRead, BufReader, Read};
 use std::path::Path;
@@ -43,6 +46,34 @@ const LOOP_THRESHOLD: u64 = 10 << 12; // Threshold for loop detection
 /// Buffer size for reading raw data (number of 16-bit words).
 const READ_BUFFER_SIZE: usize = 1_000_000;
 
+fn reserve_estimated_remaining_events<S: EventSink>(
+    path: &Path,
+    sample_bytes: usize,
+    sink: &mut S,
+    initial_len: usize,
+) {
+    let emitted = sink.cd_len().saturating_sub(initial_len);
+    if emitted == 0 || sample_bytes == 0 {
+        return;
+    }
+
+    let Ok(file_size) = std::fs::metadata(path).map(|metadata| metadata.len() as usize) else {
+        return;
+    };
+
+    // Estimate from the first 2 MB and add a small margin. Clamp the estimate
+    // to the physical maximum of one decoded event per input word.
+    let estimated = (emitted as u128)
+        .saturating_mul(file_size as u128)
+        .saturating_mul(105)
+        / (sample_bytes as u128 * 100);
+    let estimated = usize::try_from(estimated)
+        .unwrap_or(usize::MAX)
+        .min(file_size / 2);
+    let additional = estimated.saturating_sub(sink.cd_len());
+    sink.reserve_cd(additional);
+}
+
 /// Stateful EVT 3.0 decoder.
 ///
 /// Maintains internal state to properly reconstruct the event stream according
@@ -63,8 +94,6 @@ pub struct Evt3Decoder {
 
     // Byte-stream state
     pending_byte: Option<u8>,
-    word_scratch: Vec<u16>,
-
     // Metadata
     pub metadata: SensorMetadata,
 }
@@ -88,7 +117,6 @@ impl Evt3Decoder {
             current_base_x: 0,
             current_polarity: 0,
             pending_byte: None,
-            word_scratch: Vec::new(),
             metadata: SensorMetadata::default(),
         }
     }
@@ -108,7 +136,6 @@ impl Evt3Decoder {
         self.current_base_x = 0;
         self.current_polarity = 0;
         self.pending_byte = None;
-        self.word_scratch.clear();
     }
 
     /// Decodes a buffer of 16-bit words into CD and trigger events.
@@ -121,78 +148,17 @@ impl Evt3Decoder {
         cd_events: &mut Vec<CdEvent>,
         trigger_events: &mut Vec<TriggerEvent>,
     ) {
-        let mut iter = words.iter();
+        let mut sink = VecEventSink {
+            cd: cd_events,
+            triggers: trigger_events,
+        };
+        self.decode_buffer_into(words, &mut sink);
+    }
 
-        // Skip until first TIME_HIGH if not yet set
-        if !self.first_time_base_set {
-            for &word in iter.by_ref() {
-                let event_type = parser::get_event_type(word);
-                if event_type == RawEventType::TimeHigh as u8 {
-                    let time_val = parser::time_get_value(word);
-                    self.time_base = (time_val as u64) << 12;
-                    self.current_time = self.time_base;
-                    self.first_time_base_set = true;
-                    break;
-                }
-            }
-        }
-
-        // Process remaining events
-        for &word in iter {
-            let event_type = parser::get_event_type(word);
-
-            match RawEventType::from_u8(event_type) {
-                Some(RawEventType::AddrX) => {
-                    let x = parser::addr_x_get_x(word);
-                    let pol = parser::addr_x_get_polarity(word);
-                    cd_events.push(CdEvent::new(x, self.current_y, pol, self.current_time));
-                }
-
-                Some(RawEventType::Vect12) => {
-                    let valid = parser::vect_12_get_valid(word);
-                    self.process_vector_events(valid as u32, 12, cd_events);
-                }
-
-                Some(RawEventType::Vect8) => {
-                    let valid = parser::vect_8_get_valid(word);
-                    self.process_vector_events(valid as u32, 8, cd_events);
-                }
-
-                Some(RawEventType::AddrY) => {
-                    self.current_y = parser::addr_y_get_y(word);
-                }
-
-                Some(RawEventType::VectBaseX) => {
-                    self.current_base_x = parser::vect_base_x_get_x(word);
-                    self.current_polarity = parser::vect_base_x_get_polarity(word);
-                }
-
-                Some(RawEventType::TimeHigh) => {
-                    self.process_time_high(word);
-                }
-
-                Some(RawEventType::TimeLow) => {
-                    self.time_low = parser::time_get_value(word) as u64;
-                    self.current_time = self.time_base + self.time_low;
-                }
-
-                Some(RawEventType::ExtTrigger) => {
-                    let value = parser::ext_trigger_get_value(word);
-                    let id = parser::ext_trigger_get_id(word);
-                    trigger_events.push(TriggerEvent::new(value, id, self.current_time));
-                }
-
-                Some(RawEventType::Continued4)
-                | Some(RawEventType::Others)
-                | Some(RawEventType::Continued12) => {
-                    // These event types are not commonly used for CD events
-                    // and are skipped in this implementation
-                }
-
-                None => {
-                    // Reserved/unknown event type, skip
-                }
-            }
+    /// Decodes 16-bit EVT3 words directly into a caller-selected storage layout.
+    pub fn decode_buffer_into<S: EventSink>(&mut self, words: &[u16], sink: &mut S) {
+        for &word in words {
+            self.decode_word_into(word, sink);
         }
     }
 
@@ -207,35 +173,100 @@ impl Evt3Decoder {
         cd_events: &mut Vec<CdEvent>,
         trigger_events: &mut Vec<TriggerEvent>,
     ) -> Result<(), DecodeError> {
-        let mut scratch = std::mem::take(&mut self.word_scratch);
-        scratch.clear();
+        let mut sink = VecEventSink {
+            cd: cd_events,
+            triggers: trigger_events,
+        };
+        self.decode_bytes_into(bytes, &mut sink);
+        Ok(())
+    }
 
+    /// Decodes raw little-endian bytes directly into a caller-selected sink.
+    ///
+    /// Unlike the legacy implementation, this does not build an intermediate
+    /// `Vec<u16>` for every byte chunk.
+    pub fn decode_bytes_into<S: EventSink>(&mut self, bytes: &[u8], sink: &mut S) {
+        const WORD_BATCH: usize = 4096;
         let mut remaining = bytes;
 
         if let Some(pending) = self.pending_byte.take() {
             if let Some((&next, rest)) = remaining.split_first() {
-                scratch.push(u16::from_le_bytes([pending, next]));
+                self.decode_word_into(u16::from_le_bytes([pending, next]), sink);
                 remaining = rest;
             } else {
                 self.pending_byte = Some(pending);
+                return;
             }
         }
 
-        let mut chunks = remaining.chunks_exact(2);
-        scratch.extend(
-            chunks
-                .by_ref()
-                .map(|chunk| u16::from_le_bytes([chunk[0], chunk[1]])),
-        );
+        let even_bytes = remaining.len() & !1;
+        let mut offset = 0;
+        let mut words = [0_u16; WORD_BATCH];
 
-        if let Some(&last) = chunks.remainder().first() {
-            self.pending_byte = Some(last);
+        while offset < even_bytes {
+            let word_count = ((even_bytes - offset) / 2).min(WORD_BATCH);
+            let batch_end = offset + word_count * 2;
+            for (word, bytes) in words[..word_count]
+                .iter_mut()
+                .zip(remaining[offset..batch_end].chunks_exact(2))
+            {
+                *word = u16::from_le_bytes([bytes[0], bytes[1]]);
+            }
+            self.decode_buffer_into(&words[..word_count], sink);
+            offset = batch_end;
         }
 
-        self.decode_buffer(&scratch, cd_events, trigger_events);
-        self.word_scratch = scratch;
+        if even_bytes != remaining.len() {
+            self.pending_byte = remaining.last().copied();
+        }
+    }
 
-        Ok(())
+    #[inline(always)]
+    fn decode_word_into<S: EventSink>(&mut self, word: u16, sink: &mut S) {
+        let event_type = parser::get_event_type(word);
+
+        if !self.first_time_base_set {
+            if event_type == RawEventType::TimeHigh as u8 {
+                let time_val = parser::time_get_value(word);
+                self.time_base = (time_val as u64) << 12;
+                self.current_time = self.time_base;
+                self.first_time_base_set = true;
+            }
+            return;
+        }
+
+        match event_type {
+            0x2 => sink.push_cd(
+                parser::addr_x_get_x(word),
+                self.current_y,
+                parser::addr_x_get_polarity(word),
+                self.current_time,
+            ),
+            0x4 => {
+                self.process_vector_events(parser::vect_12_get_valid(word) as u32, 12, sink);
+            }
+            0x5 => {
+                self.process_vector_events(parser::vect_8_get_valid(word) as u32, 8, sink);
+            }
+            0x0 => {
+                self.current_y = parser::addr_y_get_y(word);
+            }
+            0x3 => {
+                self.current_base_x = parser::vect_base_x_get_x(word);
+                self.current_polarity = parser::vect_base_x_get_polarity(word);
+            }
+            0x8 => self.process_time_high(word),
+            0x6 => {
+                self.time_low = parser::time_get_value(word) as u64;
+                self.current_time = self.time_base + self.time_low;
+            }
+            0xA => sink.push_trigger(
+                parser::ext_trigger_get_value(word),
+                parser::ext_trigger_get_id(word),
+                self.current_time,
+            ),
+            _ => {}
+        }
     }
 
     /// Finalizes a byte stream previously fed through [`Self::decode_bytes`].
@@ -261,14 +292,14 @@ impl Evt3Decoder {
     }
 
     #[inline]
-    fn discard_trailing_file_padding(&mut self) {
+    pub(crate) fn discard_trailing_file_padding(&mut self) {
         if matches!(self.pending_byte, Some(b'\n' | b'\r')) {
             self.pending_byte = None;
         }
     }
 
     /// Processes TIME_HIGH events with loop detection.
-    #[inline]
+    #[inline(always)]
     fn process_time_high(&mut self, word: u16) {
         let time_val = parser::time_get_value(word);
         let mut new_time_base = ((time_val as u64) << 12) + (self.n_time_high_loops * TIME_LOOP);
@@ -286,20 +317,19 @@ impl Evt3Decoder {
     }
 
     /// Processes vector events (VECT_12 or VECT_8) and emits CD events.
-    #[inline]
-    fn process_vector_events(&mut self, mut valid: u32, count: u16, cd_events: &mut Vec<CdEvent>) {
+    #[inline(always)]
+    fn process_vector_events<S: EventSink>(&mut self, mut valid: u32, count: u16, sink: &mut S) {
         let end_x = self.current_base_x + count;
 
-        for x in self.current_base_x..end_x {
-            if valid & 0x1 != 0 {
-                cd_events.push(CdEvent::new(
-                    x,
-                    self.current_y,
-                    self.current_polarity,
-                    self.current_time,
-                ));
-            }
-            valid >>= 1;
+        while valid != 0 {
+            let bit = valid.trailing_zeros() as u16;
+            sink.push_cd(
+                self.current_base_x + bit,
+                self.current_y,
+                self.current_polarity,
+                self.current_time,
+            );
+            valid &= valid - 1;
         }
 
         self.current_base_x = end_x;
@@ -309,6 +339,43 @@ impl Evt3Decoder {
     ///
     /// Parses the file header (if present) and decodes all events.
     pub fn decode_file<P: AsRef<Path>>(&mut self, path: P) -> Result<DecodeResult, DecodeError> {
+        let mut cd_events = Vec::new();
+        let mut trigger_events = Vec::new();
+        {
+            let mut sink = VecEventSink {
+                cd: &mut cd_events,
+                triggers: &mut trigger_events,
+            };
+            self.decode_file_into(path, &mut sink)?;
+        }
+
+        Ok(DecodeResult {
+            cd_events,
+            trigger_events,
+            metadata: self.metadata.clone(),
+        })
+    }
+
+    /// Decodes a file directly into columnar storage.
+    pub fn decode_file_columns<P: AsRef<Path>>(
+        &mut self,
+        path: P,
+    ) -> Result<ColumnarDecodeResult, DecodeError> {
+        let mut sink = ColumnarEventSink::default();
+        self.decode_file_into(path, &mut sink)?;
+        Ok(ColumnarDecodeResult {
+            cd_events: sink.cd,
+            trigger_events: sink.triggers,
+            metadata: self.metadata.clone(),
+        })
+    }
+
+    /// Decodes a file into a caller-selected event storage layout.
+    pub fn decode_file_into<P: AsRef<Path>, S: EventSink>(
+        &mut self,
+        path: P,
+        sink: &mut S,
+    ) -> Result<(), DecodeError> {
         let path = path.as_ref();
         let extension = path
             .extension()
@@ -318,7 +385,7 @@ impl Evt3Decoder {
 
         #[cfg(feature = "hdf5")]
         if matches!(extension.as_str(), "h5" | "hdf5") {
-            return crate::hdf5_decoder::decode_hdf5(self, path);
+            return crate::hdf5_decoder::decode_hdf5_into(self, path, sink);
         }
 
         #[cfg(not(feature = "hdf5"))]
@@ -335,9 +402,8 @@ impl Evt3Decoder {
         self.parse_header(&mut reader)?;
 
         // Read and decode raw data
-        let mut cd_events = Vec::new();
-        let mut trigger_events = Vec::new();
         let mut buffer = vec![0u8; READ_BUFFER_SIZE * 2]; // 2 bytes per word
+        let mut first_chunk = true;
 
         loop {
             let bytes_read = reader.read(&mut buffer)?;
@@ -345,7 +411,13 @@ impl Evt3Decoder {
                 break;
             }
 
-            self.decode_bytes(&buffer[..bytes_read], &mut cd_events, &mut trigger_events)?;
+            let before = sink.cd_len();
+            self.decode_bytes_into(&buffer[..bytes_read], sink);
+
+            if first_chunk {
+                reserve_estimated_remaining_events(path, bytes_read, sink, before);
+                first_chunk = false;
+            }
         }
 
         // Some recorded .raw files include a trailing newline byte after the
@@ -355,15 +427,11 @@ impl Evt3Decoder {
         self.discard_trailing_file_padding();
         self.finish_stream()?;
 
-        Ok(DecodeResult {
-            cd_events,
-            trigger_events,
-            metadata: self.metadata.clone(),
-        })
+        Ok(())
     }
 
     /// Parses the file header to extract metadata.
-    fn parse_header<R: BufRead>(&mut self, reader: &mut R) -> Result<(), DecodeError> {
+    pub(crate) fn parse_header<R: BufRead>(&mut self, reader: &mut R) -> Result<(), DecodeError> {
         // EVT3 files may have a text header starting with '%'
         // We need to carefully peek and read line by line
 
@@ -538,6 +606,25 @@ mod tests {
             assert_eq!(event.polarity, 0);
             assert_eq!(event.timestamp, 200);
         }
+    }
+
+    #[test]
+    fn columnar_decode_matches_legacy_layout() {
+        let words = sample_words();
+        let (expected_cd, expected_triggers) = decode_words(&words);
+        let mut decoder = Evt3Decoder::new();
+        let mut sink = ColumnarEventSink::default();
+
+        decoder.decode_buffer_into(&words, &mut sink);
+
+        assert_eq!(sink.cd.len(), expected_cd.len());
+        for (index, expected) in expected_cd.iter().enumerate() {
+            assert_eq!(sink.cd.x[index], expected.x);
+            assert_eq!(sink.cd.y[index], expected.y);
+            assert_eq!(sink.cd.polarity[index], expected.polarity);
+            assert_eq!(sink.cd.timestamp[index], expected.timestamp);
+        }
+        assert_eq!(sink.triggers.len(), expected_triggers.len());
     }
 
     #[test]

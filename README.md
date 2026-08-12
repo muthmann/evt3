@@ -6,15 +6,17 @@
 
 High-performance EVT 3.0 raw data decoder for [Prophesee](https://www.prophesee.ai/) event cameras, written in Rust.
 
-**5.6x faster than the C++ reference implementation** with byte-for-byte identical output.
+**1.62x faster than the optimized C++ reference** in a like-for-like full-CSV
+benchmark, with byte-identical checked output.
 
 ## Features
 
-- 🚀 **High Performance** - 50M+ events/second, 5.6x faster than C++ reference
+- 🚀 **High Performance** - 55M events/second for Python decode-only and 1.62x faster than C++ for full CSV output
 - 📦 **Multiple Interfaces** - CLI tool, Python bindings, Rust library
-- 🐍 **Zero-copy Python** - NumPy array access via PyO3
+- 🐍 **NumPy-native Python** - stable `Events` arrays for analysis without clone-on-access surprises
+- 🔭 **AugurRS Ingress** - publish decoded or transformed NumPy event arrays into [AugurRS](https://github.com/muthmann/augur-rs) for interactive preview, 3D inspection, viewer tools, and plugin workflows
 - 🧪 **Optional HDF5 Input** - `.h5` and `.hdf5` support behind a cargo feature
-- ✅ **Validated** - Output matches C++ reference implementation exactly
+- ✅ **Validated** - Checked CSV output matches the C++ reference byte for byte
 - 🔧 **Customizable** - Configurable output field order
 
 ## Quick Start
@@ -136,6 +138,12 @@ y = events.y          # np.ndarray[uint16]
 p = events.polarity   # np.ndarray[uint8]
 t = events.timestamp  # np.ndarray[uint64] (microseconds)
 
+# Repeated access returns stable array objects
+assert events.x is events.x
+assert events.y is events.y
+assert events.p is events.p
+assert events.t is events.t
+
 # Basic analysis
 print(f"Duration: {(t[-1] - t[0]) / 1e6:.2f} seconds")
 print(f"Event rate: {len(events) / ((t[-1] - t[0]) / 1e6):.0f} events/sec")
@@ -143,7 +151,80 @@ print(f"Event rate: {len(events) / ((t[-1] - t[0]) / 1e6):.0f} events/sec")
 # Create pandas DataFrame
 import pandas as pd
 df = pd.DataFrame(events.to_dict())
+
+# Existing decode_file code stays unchanged and now uses the optimized
+# columnar decoder internally. Process bounded batches when the full recording
+# does not need to stay in memory:
+for batch in evt3.decode_file_batches("recording.raw", batch_bytes=8 << 20):
+    process(batch.x, batch.y, batch.p, batch.t)
+
+# Preserve external trigger events in the bounded-memory workflow:
+for events, triggers in evt3.decode_file_batches_with_triggers("recording.raw"):
+    process(events, triggers.timestamp, triggers.id, triggers.value)
+
+# Preserve decoder state across arbitrary live-input chunk borders:
+decoder = evt3.Decoder(sensor_width=1280, sensor_height=720)
+for raw_chunk in camera_chunks:
+    process(decoder.feed(raw_chunk))
+decoder.finish()
 ```
+
+### Python To AugurRS
+
+`evt3` can publish decoded or transformed NumPy event arrays into a running
+[AugurRS](https://github.com/muthmann/augur-rs) session. This makes Python a
+lightweight analysis and filtering environment while AugurRS provides the
+interactive event-camera application: live-style preview, 3D raw-event
+inspection, viewer tools, exports, and plugins.
+
+```python
+import evt3
+
+events = evt3.decode_file("recording.raw")
+
+# Optional Python-side filtering or analysis.
+x = events.x
+y = events.y
+p = events.p
+t = events.t
+
+evt3.augur.publish_events(
+    x=x,
+    y=y,
+    p=p,
+    t=t,
+    geometry=events.sensor_size,
+    name="recording-analysis-window",
+)
+```
+
+You can also create an `Events` container from existing NumPy arrays:
+
+```python
+events = evt3.Events.from_arrays(
+    x=x,
+    y=y,
+    p=p,
+    t=t,
+    geometry=(1280, 720),
+    copy=False,
+)
+
+evt3.augur.publish_events(events, name="filtered-events")
+```
+
+For repeated sends, reuse the loopback session:
+
+```python
+with evt3.augur.connect() as augur:
+    augur.publish_events(events, name="raw")
+    augur.publish_events(filtered_events, name="filtered")
+```
+
+The first ingress stage is deliberately copy-based and bounded: event chunks
+are packed into AugurRS' 14-byte `packed_xypt_v1` decoded-event transport and
+sent over loopback TCP. The connector validates dtype, shape, geometry, and
+timestamp ordering before sending so mistakes fail close to the Python code.
 
 ### Rust Library
 
@@ -185,6 +266,12 @@ Notes:
 - `decode_bytes` expects little-endian EVT3 payload bytes and can be called with odd-sized chunks.
 - Call `finish_stream()` only when the stream is complete so a trailing half-word is reported as an error instead of being buffered for the next chunk.
 - `.h5` and `.hdf5` decoding is available when the crate or binary is built with the `hdf5` feature.
+- `decode_file` remains source-compatible and returns the same `Events` API. It
+  now decodes directly into NumPy's columnar layout and releases the Python GIL.
+- `decode_file_batches` is the bounded-memory option for large recordings.
+  Use `decode_file_batches_with_triggers` when external trigger edges are also
+  required. The arrays in a batch remain valid after the iterator advances,
+  but retaining all batches naturally retains the full recording.
 
 ### HDF5 Inputs
 
@@ -224,20 +311,26 @@ Notes:
 
 ## Benchmarks
 
-Tested on Apple M1 with `laser.raw` (325MB, 116M events):
+Tested on Apple Silicon macOS with `laser.raw` (325 MB, 116,300,447 events).
+Both CLI implementations decoded the complete file, formatted the same CSV,
+and wrote it to `/dev/null`. Each mean uses five alternating measured runs
+after one warm-up per implementation.
 
-| Decoder | Events/sec | Speedup |
-|---------|------------|---------|
-| **Rust (Python)** | 49M/s | **5.6x** |
-| Rust CLI | 12M/s | 1.3x |
-| C++ Reference | 9M/s | 1.0x |
+| Decoder | Mean time | Events/sec | Speedup |
+|---|---:|---:|---:|
+| **Rust CLI** | **7.414 s** | **15.69M/s** | **1.62x** |
+| C++ reference (`-O3 -DNDEBUG`) | 12.028 s | 9.67M/s | 1.00x |
 
-> **Note:** Python benchmark measures pure decode speed. CLI benchmarks include CSV file I/O overhead.
+An instrumented run measured 63.3 MB maximum RSS for Rust and 28.3 MB for
+C++. Rust is faster in this workload; the C++ reference uses less memory. The
+CSV outputs had the same SHA-256 hash on an 8-MiB input prefix. Python's
+2.108-second full-memory decode is reported separately because it does not
+format CSV and is not directly comparable with this table.
 
 Run benchmarks yourself:
 ```bash
 cargo bench
-python benchmarks/benchmark.py
+python benchmarks/benchmark.py --csv-comparison-only --iterations 5
 ```
 
 ## Output Formats

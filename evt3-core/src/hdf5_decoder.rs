@@ -4,7 +4,10 @@ use hdf5::types::{VarLenAscii, VarLenUnicode};
 use hdf5::{File, H5Type};
 
 use crate::decoder::{DecodeError, Evt3Decoder};
-use crate::types::{CdEvent, DecodeResult, SensorMetadata, TriggerEvent};
+use crate::sink::EventSink;
+use crate::types::SensorMetadata;
+
+const HDF5_BATCH_EVENTS: usize = 1_000_000;
 
 #[derive(H5Type, Clone, Debug)]
 #[repr(C)]
@@ -28,28 +31,106 @@ struct RawTriggerEvent {
     id: i16,
 }
 
-pub(crate) fn decode_hdf5(
+pub(crate) fn decode_hdf5_into<S: EventSink>(
     decoder: &mut Evt3Decoder,
     path: &Path,
-) -> Result<DecodeResult, DecodeError> {
-    let file = File::open(path)?;
+    sink: &mut S,
+) -> Result<(), DecodeError> {
+    let mut reader = Hdf5BatchReader::open(path, HDF5_BATCH_EVENTS * 16)?;
+    sink.reserve_cd(reader.cd_len);
+    sink.reserve_triggers(reader.trigger_len);
+    while reader.read_next_into(sink)? {}
+    decoder.metadata = reader.metadata;
+    Ok(())
+}
 
-    let metadata = parse_geometry(&file)?;
-    let cd_events = read_cd_events(&file)?;
-    let trigger_events = read_trigger_events(&file)?;
+pub(crate) struct Hdf5BatchReader {
+    _file: File,
+    metadata: SensorMetadata,
+    cd_dataset: Option<hdf5::Dataset>,
+    trigger_dataset: Option<hdf5::Dataset>,
+    cd_offset: usize,
+    trigger_offset: usize,
+    cd_len: usize,
+    trigger_len: usize,
+    batch_events: usize,
+}
 
-    if cd_events.is_empty() && trigger_events.is_empty() {
-        return Err(DecodeError::MissingGroup(
-            "neither CD/events nor EXT_TRIGGER/events dataset found".to_string(),
-        ));
+impl Hdf5BatchReader {
+    pub(crate) fn open(path: &Path, batch_bytes: usize) -> Result<Self, DecodeError> {
+        let file = File::open(path)?;
+        let metadata = parse_geometry(&file)?;
+        let cd_dataset = open_events_dataset(&file, "CD")?;
+        let trigger_dataset = open_events_dataset(&file, "EXT_TRIGGER")?;
+        let cd_len = cd_dataset.as_ref().map_or(0, |dataset| dataset.size());
+        let trigger_len = trigger_dataset.as_ref().map_or(0, |dataset| dataset.size());
+
+        if cd_len == 0 && trigger_len == 0 {
+            return Err(DecodeError::MissingGroup(
+                "neither CD/events nor EXT_TRIGGER/events dataset found".to_string(),
+            ));
+        }
+
+        Ok(Self {
+            _file: file,
+            metadata,
+            cd_dataset,
+            trigger_dataset,
+            cd_offset: 0,
+            trigger_offset: 0,
+            cd_len,
+            trigger_len,
+            batch_events: (batch_bytes / std::mem::size_of::<RawCdEvent>()).max(1),
+        })
     }
 
-    decoder.metadata = metadata.clone();
-    Ok(DecodeResult {
-        cd_events,
-        trigger_events,
-        metadata,
-    })
+    pub(crate) fn metadata(&self) -> &SensorMetadata {
+        &self.metadata
+    }
+
+    pub(crate) fn read_next_into<S: EventSink>(
+        &mut self,
+        sink: &mut S,
+    ) -> Result<bool, DecodeError> {
+        if self.cd_offset >= self.cd_len && self.trigger_offset >= self.trigger_len {
+            return Ok(false);
+        }
+
+        if let Some(dataset) = &self.cd_dataset {
+            let end = (self.cd_offset + self.batch_events).min(self.cd_len);
+            if self.cd_offset < end {
+                sink.reserve_cd(end - self.cd_offset);
+                for raw in dataset.read_slice_1d::<RawCdEvent, _>(self.cd_offset..end)? {
+                    sink.push_cd(
+                        raw.x,
+                        raw.y,
+                        normalize_binary_flag(raw.p),
+                        decode_timestamp(raw.t)?,
+                    );
+                }
+                self.cd_offset = end;
+            }
+        }
+
+        if let Some(dataset) = &self.trigger_dataset {
+            let end = (self.trigger_offset + self.batch_events).min(self.trigger_len);
+            if self.trigger_offset < end {
+                sink.reserve_triggers(end - self.trigger_offset);
+                for raw in dataset.read_slice_1d::<RawTriggerEvent, _>(self.trigger_offset..end)? {
+                    let id = u8::try_from(raw.id).map_err(|_| {
+                        DecodeError::InvalidFormat(format!(
+                            "HDF5 trigger id must fit in u8, got {}",
+                            raw.id
+                        ))
+                    })?;
+                    sink.push_trigger(normalize_binary_flag(raw.p), id, decode_timestamp(raw.t)?);
+                }
+                self.trigger_offset = end;
+            }
+        }
+
+        Ok(true)
+    }
 }
 
 fn parse_geometry(file: &File) -> Result<SensorMetadata, DecodeError> {
@@ -80,47 +161,6 @@ fn parse_geometry_value(geometry: &str) -> Result<SensorMetadata, DecodeError> {
         .map_err(|_| DecodeError::MalformedGeometry(geometry.to_string()))?;
 
     Ok(SensorMetadata { width, height })
-}
-
-fn read_cd_events(file: &File) -> Result<Vec<CdEvent>, DecodeError> {
-    let Some(dataset) = open_events_dataset(file, "CD")? else {
-        return Ok(Vec::new());
-    };
-    dataset
-        .read_1d::<RawCdEvent>()?
-        .into_iter()
-        .map(|raw| {
-            Ok(CdEvent::new(
-                raw.x,
-                raw.y,
-                normalize_binary_flag(raw.p),
-                decode_timestamp(raw.t)?,
-            ))
-        })
-        .collect()
-}
-
-fn read_trigger_events(file: &File) -> Result<Vec<TriggerEvent>, DecodeError> {
-    let Some(dataset) = open_events_dataset(file, "EXT_TRIGGER")? else {
-        return Ok(Vec::new());
-    };
-    dataset
-        .read_1d::<RawTriggerEvent>()?
-        .into_iter()
-        .map(|raw| {
-            let id = u8::try_from(raw.id).map_err(|_| {
-                DecodeError::InvalidFormat(format!(
-                    "HDF5 trigger id must fit in u8, got {}",
-                    raw.id
-                ))
-            })?;
-            Ok(TriggerEvent::new(
-                normalize_binary_flag(raw.p),
-                id,
-                decode_timestamp(raw.t)?,
-            ))
-        })
-        .collect()
 }
 
 fn open_events_dataset(

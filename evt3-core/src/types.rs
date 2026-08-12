@@ -3,6 +3,8 @@
 //! This module defines the event structures and raw event types according to
 //! the Prophesee EVT 3.0 specification.
 
+use crate::sink::{EventColumns, TriggerColumns};
+
 /// A decoded Change Detection (CD) event.
 ///
 /// CD events represent brightness changes detected by the event camera sensor.
@@ -140,6 +142,17 @@ pub struct DecodeResult {
     /// Decoded trigger events
     pub trigger_events: Vec<TriggerEvent>,
     /// Sensor metadata
+    pub metadata: SensorMetadata,
+}
+
+/// Result of decoding directly into NumPy-friendly columnar storage.
+#[derive(Debug)]
+pub struct ColumnarDecodeResult {
+    /// Decoded CD event columns.
+    pub cd_events: EventColumns,
+    /// Decoded external trigger columns.
+    pub trigger_events: TriggerColumns,
+    /// Sensor metadata parsed from the input.
     pub metadata: SensorMetadata,
 }
 

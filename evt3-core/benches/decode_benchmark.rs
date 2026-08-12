@@ -3,7 +3,7 @@
 //! Run with: cargo bench
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion, Throughput};
-use evt3_core::Evt3Decoder;
+use evt3_core::{ColumnarEventSink, Evt3Decoder};
 use std::path::PathBuf;
 
 const TEST_FILE_CANDIDATES: [&str; 2] = ["test_data/laser.raw", "../test_data/laser.raw"];
@@ -19,6 +19,18 @@ fn synthetic_bytes() -> Vec<u8> {
         data.extend_from_slice(&(0x2800u16 | ((i * 3) & 0x07FF) as u16).to_le_bytes());
     }
 
+    data
+}
+
+fn synthetic_vector_bytes() -> Vec<u8> {
+    let mut data = Vec::new();
+    data.extend_from_slice(&0x8000u16.to_le_bytes());
+    for i in 0..100_000_u32 {
+        data.extend_from_slice(&(0x6000_u16 | (i & 0x0fff) as u16).to_le_bytes());
+        data.extend_from_slice(&((i & 0x07ff) as u16).to_le_bytes());
+        data.extend_from_slice(&(0x3000_u16 | ((i * 3) & 0x07ff) as u16).to_le_bytes());
+        data.extend_from_slice(&(0x4001_u16 | ((i & 0x0f) << 4) as u16).to_le_bytes());
+    }
     data
 }
 
@@ -45,6 +57,15 @@ fn decode_file_benchmark(c: &mut Criterion) {
         b.iter(|| {
             let mut decoder = Evt3Decoder::new();
             let result = decoder.decode_file(black_box(&test_path)).unwrap();
+            black_box(result.cd_events.len())
+        })
+    });
+
+    group.bench_function("full_file_columns", |b| {
+        b.iter(|| {
+            let result = Evt3Decoder::new()
+                .decode_file_columns(black_box(&test_path))
+                .unwrap();
             black_box(result.cd_events.len())
         })
     });
@@ -119,10 +140,27 @@ fn decode_bytes_benchmark(c: &mut Criterion) {
     group.finish();
 }
 
+fn decode_vector_benchmark(c: &mut Criterion) {
+    let data = synthetic_vector_bytes();
+    let mut group = c.benchmark_group("decode_vectors");
+    group.throughput(Throughput::Bytes(data.len() as u64));
+
+    group.bench_function("sparse_vector_masks", |b| {
+        b.iter(|| {
+            let mut decoder = Evt3Decoder::new();
+            let mut sink = ColumnarEventSink::default();
+            decoder.decode_bytes_into(black_box(&data), &mut sink);
+            black_box(sink.cd.len())
+        })
+    });
+    group.finish();
+}
+
 criterion_group!(
     benches,
     decode_file_benchmark,
     decode_buffer_benchmark,
-    decode_bytes_benchmark
+    decode_bytes_benchmark,
+    decode_vector_benchmark
 );
 criterion_main!(benches);

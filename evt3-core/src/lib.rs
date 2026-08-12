@@ -46,13 +46,17 @@
 //! - Incremental byte-stream decoding for live camera pipelines
 
 pub mod decoder;
+pub mod file_reader;
 #[cfg(feature = "hdf5")]
 pub(crate) mod hdf5_decoder;
 pub mod output;
 pub mod parser;
+pub mod sink;
 pub mod types;
 
 // Re-export commonly used types
 pub use decoder::{DecodeError, Evt3Decoder};
+pub use file_reader::{EventFileReader, DEFAULT_BATCH_BYTES};
 pub use output::{FieldOrder, OutputError};
-pub use types::{CdEvent, DecodeResult, SensorMetadata, TriggerEvent};
+pub use sink::{ColumnarEventSink, EventColumns, EventSink, TriggerColumns};
+pub use types::{CdEvent, ColumnarDecodeResult, DecodeResult, SensorMetadata, TriggerEvent};
