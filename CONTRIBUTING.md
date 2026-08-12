@@ -38,7 +38,7 @@ pytest
 
 ```
 evt3/
-├── evt3-core/      # Core Rust decoder library
+├── evt3-core/      # Rust decoder library -> crate `evt3`
 ├── evt3-cli/       # Command-line tool
 ├── evt3-python/    # Python bindings (PyO3)
 ├── benchmarks/     # Benchmark suite

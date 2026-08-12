@@ -4,10 +4,8 @@
 
 use anyhow::{Context, Result};
 use clap::Parser;
-use evt3_core::output::{BinaryWriter, CsvWriter, TriggerCsvWriter};
-use evt3_core::{
-    ColumnarEventSink, EventFileReader, FieldOrder, SensorMetadata, DEFAULT_BATCH_BYTES,
-};
+use evt3::output::{BinaryWriter, CsvWriter, TriggerCsvWriter};
+use evt3::{ColumnarEventSink, EventFileReader, FieldOrder, SensorMetadata, DEFAULT_BATCH_BYTES};
 use indicatif::{ProgressBar, ProgressStyle};
 use std::fs::File;
 use std::path::{Path, PathBuf};
@@ -85,7 +83,7 @@ impl StreamingOutput {
         }
     }
 
-    fn write(&mut self, events: &evt3_core::EventColumns) -> Result<()> {
+    fn write(&mut self, events: &evt3::EventColumns) -> Result<()> {
         match self {
             Self::Csv(writer) => writer.write_columns(events)?,
             Self::Binary(writer) => writer.write_columns(events)?,

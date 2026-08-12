@@ -45,7 +45,7 @@ same sequential core pass and does not require a second file scan.
 Use release builds and compare the same work:
 
 ```bash
-cargo bench -p evt3-core --bench decode_benchmark
+cargo bench -p evt3 --bench decode_benchmark
 python benchmarks/benchmark.py --file test_data/laser.raw --iterations 5
 ```
 

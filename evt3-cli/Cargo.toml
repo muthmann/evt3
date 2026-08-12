@@ -4,12 +4,13 @@ version = "0.3.0"
 edition = "2021"
 authors = ["Mika Uthmann <muthmann@physik.uni-bielefeld.de>"]
 license = "MIT"
-description = "CLI tool for decoding EVT 3.0 raw files from Prophesee event cameras"
+description = "Fast CLI that decodes EVT3 (EVT 3.0) .raw and HDF5 event data from Prophesee and Metavision event cameras into CSV or binary. Installs the `evt3` command. Rust library: evt3."
 readme = "../README.md"
 homepage = "https://github.com/muthmann/evt3"
 repository = "https://github.com/muthmann/evt3"
-keywords = ["event-camera", "event-based-camera", "evt3", "prophesee", "cli", "decoder"]
-categories = ["command-line-utilities", "parser-implementations"]
+documentation = "https://github.com/muthmann/evt3#readme"
+keywords = ["event-camera", "prophesee", "evt3", "neuromorphic", "decoder"]
+categories = ["command-line-utilities", "parser-implementations", "science"]
 
 [[bin]]
 name = "evt3"
@@ -17,10 +18,10 @@ path = "src/main.rs"
 
 [features]
 default = []
-hdf5 = ["evt3-core/hdf5"]
+hdf5 = ["evt3/hdf5"]
 
 [dependencies]
-evt3-core = { path = "../evt3-core" }
+evt3 = { workspace = true }
 clap = { version = "4.4", features = ["derive"] }
 indicatif = "0.17"
 anyhow = "1.0"

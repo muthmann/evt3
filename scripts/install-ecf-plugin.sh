@@ -172,4 +172,4 @@ echo "  export HDF5_PLUGIN_PATH=\"${INSTALL_DIR}\""
 echo
 echo "Then verify HDF5 decoding:"
 echo "  HDF5_PLUGIN_PATH=\"${INSTALL_DIR}\" HDF5_DIR=\"${HDF5_ROOT}\" \\"
-echo "  cargo test -p evt3-core --features hdf5 -- --show-output"
+echo "  cargo test -p evt3 --features hdf5 -- --show-output"

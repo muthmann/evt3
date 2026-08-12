@@ -3,7 +3,7 @@
 //! Run with: cargo bench
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion, Throughput};
-use evt3_core::{ColumnarEventSink, Evt3Decoder};
+use evt3::{ColumnarEventSink, Evt3Decoder};
 use std::path::PathBuf;
 
 const TEST_FILE_CANDIDATES: [&str; 2] = ["test_data/laser.raw", "../test_data/laser.raw"];

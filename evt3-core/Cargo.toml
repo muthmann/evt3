@@ -1,14 +1,15 @@
 [package]
-name = "evt3-core"
+name = "evt3"
 version = "0.3.0"
 edition = "2021"
 authors = ["Mika Uthmann <muthmann@physik.uni-bielefeld.de>"]
 license = "MIT"
-description = "Core EVT 3.0 decoder library for Prophesee event cameras"
+description = "Fast EVT3 (EVT 3.0) decoder library for Prophesee and Metavision event cameras. Decodes .raw and HDF5 event data for event-based vision and neuromorphic research."
 readme = "../README.md"
 homepage = "https://github.com/muthmann/evt3"
 repository = "https://github.com/muthmann/evt3"
-keywords = ["event-based-camera", "evt3", "prophesee", "decoder", "neuromorphic"]
+documentation = "https://docs.rs/evt3"
+keywords = ["event-camera", "evt3", "prophesee", "decoder", "neuromorphic"]
 categories = ["parser-implementations", "encoding", "science"]
 
 [features]
