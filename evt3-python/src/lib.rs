@@ -17,13 +17,15 @@ use std::path::PathBuf;
 #[pyclass]
 pub struct Events {
     /// X coordinates
-    x: Vec<u16>,
+    x: Py<PyArray1<u16>>,
     /// Y coordinates
-    y: Vec<u16>,
+    y: Py<PyArray1<u16>>,
     /// Polarities
-    polarity: Vec<u8>,
+    polarity: Py<PyArray1<u8>>,
     /// Timestamps in microseconds
-    timestamp: Vec<u64>,
+    timestamp: Py<PyArray1<u64>>,
+    /// Event count
+    event_count: usize,
     /// Sensor width
     sensor_width: u32,
     /// Sensor height
@@ -34,58 +36,55 @@ pub struct Events {
 impl Events {
     /// Returns the number of events.
     fn __len__(&self) -> usize {
-        self.x.len()
+        self.event_count
     }
 
     /// Returns a string representation.
     fn __repr__(&self) -> String {
         format!(
             "Events(count={}, sensor={}x{})",
-            self.x.len(),
-            self.sensor_width,
-            self.sensor_height
+            self.event_count, self.sensor_width, self.sensor_height
         )
     }
 
     /// Returns the X coordinates as a numpy array.
     ///
-    /// This creates a view into the Rust-allocated memory without copying.
-    /// The array is valid as long as this Events object is alive.
+    /// Repeated access returns the same numpy array object.
     #[getter]
-    fn x<'py>(&self, py: Python<'py>) -> Bound<'py, PyArray1<u16>> {
-        self.x.clone().into_pyarray(py)
+    fn x(&self, py: Python<'_>) -> Py<PyArray1<u16>> {
+        self.x.clone_ref(py)
     }
 
     /// Returns the Y coordinates as a numpy array.
     #[getter]
-    fn y<'py>(&self, py: Python<'py>) -> Bound<'py, PyArray1<u16>> {
-        self.y.clone().into_pyarray(py)
+    fn y(&self, py: Python<'_>) -> Py<PyArray1<u16>> {
+        self.y.clone_ref(py)
     }
 
     /// Returns the polarities as a numpy array.
     ///
     /// Values: 0 = OFF (decrease in brightness), 1 = ON (increase)
     #[getter]
-    fn polarity<'py>(&self, py: Python<'py>) -> Bound<'py, PyArray1<u8>> {
-        self.polarity.clone().into_pyarray(py)
+    fn polarity(&self, py: Python<'_>) -> Py<PyArray1<u8>> {
+        self.polarity.clone_ref(py)
     }
 
     /// Alias for polarity (shorter name).
     #[getter]
-    fn p<'py>(&self, py: Python<'py>) -> Bound<'py, PyArray1<u8>> {
-        self.polarity.clone().into_pyarray(py)
+    fn p(&self, py: Python<'_>) -> Py<PyArray1<u8>> {
+        self.polarity.clone_ref(py)
     }
 
     /// Returns the timestamps as a numpy array (in microseconds).
     #[getter]
-    fn timestamp<'py>(&self, py: Python<'py>) -> Bound<'py, PyArray1<u64>> {
-        self.timestamp.clone().into_pyarray(py)
+    fn timestamp(&self, py: Python<'_>) -> Py<PyArray1<u64>> {
+        self.timestamp.clone_ref(py)
     }
 
     /// Alias for timestamp (shorter name).
     #[getter]
-    fn t<'py>(&self, py: Python<'py>) -> Bound<'py, PyArray1<u64>> {
-        self.timestamp.clone().into_pyarray(py)
+    fn t(&self, py: Python<'_>) -> Py<PyArray1<u64>> {
+        self.timestamp.clone_ref(py)
     }
 
     /// Returns the sensor width in pixels.
@@ -111,17 +110,17 @@ impl Events {
     /// This is useful for creating a pandas DataFrame or structured array.
     fn to_dict<'py>(&self, py: Python<'py>) -> PyResult<Py<PyDict>> {
         let dict = PyDict::new(py);
-        dict.set_item("x", self.x.clone().into_pyarray(py))?;
-        dict.set_item("y", self.y.clone().into_pyarray(py))?;
-        dict.set_item("polarity", self.polarity.clone().into_pyarray(py))?;
-        dict.set_item("timestamp", self.timestamp.clone().into_pyarray(py))?;
+        dict.set_item("x", self.x.clone_ref(py))?;
+        dict.set_item("y", self.y.clone_ref(py))?;
+        dict.set_item("polarity", self.polarity.clone_ref(py))?;
+        dict.set_item("timestamp", self.timestamp.clone_ref(py))?;
         Ok(dict.unbind())
     }
 }
 
 impl Events {
     /// Creates an Events container from a vector of CdEvent structs.
-    fn from_cd_events(events: Vec<CdEvent>, width: u32, height: u32) -> Self {
+    fn from_cd_events(py: Python<'_>, events: Vec<CdEvent>, width: u32, height: u32) -> Self {
         let len = events.len();
         let mut x = Vec::with_capacity(len);
         let mut y = Vec::with_capacity(len);
@@ -136,10 +135,11 @@ impl Events {
         }
 
         Self {
-            x,
-            y,
-            polarity,
-            timestamp,
+            x: x.into_pyarray(py).unbind(),
+            y: y.into_pyarray(py).unbind(),
+            polarity: polarity.into_pyarray(py).unbind(),
+            timestamp: timestamp.into_pyarray(py).unbind(),
+            event_count: len,
             sensor_width: width,
             sensor_height: height,
         }
@@ -237,6 +237,7 @@ fn decode_file(py: Python<'_>, path: &str) -> PyResult<Py<Events>> {
         .map_err(|e| PyIOError::new_err(format!("Failed to decode file: {}", e)))?;
 
     let events = Events::from_cd_events(
+        py,
         result.cd_events,
         result.metadata.width,
         result.metadata.height,
@@ -270,6 +271,7 @@ fn decode_file_with_triggers(
         .map_err(|e| PyIOError::new_err(format!("Failed to decode file: {}", e)))?;
 
     let events = Events::from_cd_events(
+        py,
         result.cd_events,
         result.metadata.width,
         result.metadata.height,
@@ -313,7 +315,7 @@ fn decode_bytes(
     let mut trigger_events = Vec::new();
     decoder.decode_buffer(&words, &mut cd_events, &mut trigger_events);
 
-    let events = Events::from_cd_events(cd_events, sensor_width, sensor_height);
+    let events = Events::from_cd_events(py, cd_events, sensor_width, sensor_height);
     Py::new(py, events)
 }
 

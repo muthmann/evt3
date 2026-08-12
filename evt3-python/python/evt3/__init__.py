@@ -20,19 +20,54 @@ Example:
     >>> df = pd.DataFrame(events.to_dict())
 """
 
+from . import augur
 from ._evt3 import (
-    decode_file,
-    decode_file_with_triggers,
-    decode_bytes,
-    Events,
+    decode_bytes as _decode_bytes,
+    decode_file as _decode_file,
+    decode_file_with_triggers as _decode_file_with_triggers,
     TriggerEvents,
 )
+from .events import Events
 
-__version__ = "0.1.0"
+__version__ = "0.3.0"
+
+
+def _wrap_events(events):
+    return Events._from_trusted_arrays(
+        x=events.x,
+        y=events.y,
+        p=events.p,
+        t=events.t,
+        geometry=events.sensor_size,
+    )
+
+
+def decode_file(path):
+    """Decode an EVT 3.0 raw file and return NumPy-native events."""
+
+    return _wrap_events(_decode_file(path))
+
+
+def decode_file_with_triggers(path):
+    """Decode an EVT 3.0 raw file and return events plus trigger events."""
+
+    events, triggers = _decode_file_with_triggers(path)
+    return _wrap_events(events), triggers
+
+
+def decode_bytes(data, sensor_width=1280, sensor_height=720):
+    """Decode raw EVT 3.0 bytes and return NumPy-native events."""
+
+    return _wrap_events(
+        _decode_bytes(data, sensor_width=sensor_width, sensor_height=sensor_height)
+    )
+
+
 __all__ = [
     "decode_file",
-    "decode_file_with_triggers", 
+    "decode_file_with_triggers",
     "decode_bytes",
     "Events",
     "TriggerEvents",
+    "augur",
 ]

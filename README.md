@@ -12,7 +12,8 @@ High-performance EVT 3.0 raw data decoder for [Prophesee](https://www.prophesee.
 
 - 🚀 **High Performance** - 50M+ events/second, 5.6x faster than C++ reference
 - 📦 **Multiple Interfaces** - CLI tool, Python bindings, Rust library
-- 🐍 **Zero-copy Python** - NumPy array access via PyO3
+- 🐍 **NumPy-native Python** - stable `Events` arrays for analysis without clone-on-access surprises
+- 🔭 **AugurRS Ingress** - publish decoded or transformed NumPy event arrays into [AugurRS](https://github.com/muthmann/augur-rs) for interactive preview, 3D inspection, viewer tools, and plugin workflows
 - 🧪 **Optional HDF5 Input** - `.h5` and `.hdf5` support behind a cargo feature
 - ✅ **Validated** - Output matches C++ reference implementation exactly
 - 🔧 **Customizable** - Configurable output field order
@@ -136,6 +137,12 @@ y = events.y          # np.ndarray[uint16]
 p = events.polarity   # np.ndarray[uint8]
 t = events.timestamp  # np.ndarray[uint64] (microseconds)
 
+# Repeated access returns stable array objects
+assert events.x is events.x
+assert events.y is events.y
+assert events.p is events.p
+assert events.t is events.t
+
 # Basic analysis
 print(f"Duration: {(t[-1] - t[0]) / 1e6:.2f} seconds")
 print(f"Event rate: {len(events) / ((t[-1] - t[0]) / 1e6):.0f} events/sec")
@@ -144,6 +151,63 @@ print(f"Event rate: {len(events) / ((t[-1] - t[0]) / 1e6):.0f} events/sec")
 import pandas as pd
 df = pd.DataFrame(events.to_dict())
 ```
+
+### Python To AugurRS
+
+`evt3` can publish decoded or transformed NumPy event arrays into a running
+[AugurRS](https://github.com/muthmann/augur-rs) session. This makes Python a
+lightweight analysis and filtering environment while AugurRS provides the
+interactive event-camera application: live-style preview, 3D raw-event
+inspection, viewer tools, exports, and plugins.
+
+```python
+import evt3
+
+events = evt3.decode_file("recording.raw")
+
+# Optional Python-side filtering or analysis.
+x = events.x
+y = events.y
+p = events.p
+t = events.t
+
+evt3.augur.publish_events(
+    x=x,
+    y=y,
+    p=p,
+    t=t,
+    geometry=events.sensor_size,
+    name="recording-analysis-window",
+)
+```
+
+You can also create an `Events` container from existing NumPy arrays:
+
+```python
+events = evt3.Events.from_arrays(
+    x=x,
+    y=y,
+    p=p,
+    t=t,
+    geometry=(1280, 720),
+    copy=False,
+)
+
+evt3.augur.publish_events(events, name="filtered-events")
+```
+
+For repeated sends, reuse the loopback session:
+
+```python
+with evt3.augur.connect() as augur:
+    augur.publish_events(events, name="raw")
+    augur.publish_events(filtered_events, name="filtered")
+```
+
+The first ingress stage is deliberately copy-based and bounded: event chunks
+are packed into AugurRS' 14-byte `packed_xypt_v1` decoded-event transport and
+sent over loopback TCP. The connector validates dtype, shape, geometry, and
+timestamp ordering before sending so mistakes fail close to the Python code.
 
 ### Rust Library
 

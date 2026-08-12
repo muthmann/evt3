@@ -1,5 +1,10 @@
 """Tests for evt3 Python bindings."""
 
+import json
+import socket
+import struct
+import threading
+
 import pytest
 import numpy as np
 
@@ -45,6 +50,25 @@ class TestDecodeBytes:
         assert events.p.dtype == np.uint8  # Alias
         assert events.timestamp.dtype == np.uint64
         assert events.t.dtype == np.uint64  # Alias
+
+    def test_numpy_arrays_are_stable(self, synthetic_evt3_bytes):
+        """Repeated Events property access returns stable array objects."""
+        import evt3
+        from evt3 import _evt3
+
+        events = evt3.decode_bytes(synthetic_evt3_bytes)
+        assert events.x is events.x
+        assert events.y is events.y
+        assert events.p is events.p
+        assert events.t is events.t
+        assert events.polarity is events.p
+        assert events.timestamp is events.t
+
+        raw_events = _evt3.decode_bytes(synthetic_evt3_bytes)
+        assert raw_events.x is raw_events.x
+        assert raw_events.y is raw_events.y
+        assert raw_events.p is raw_events.p
+        assert raw_events.t is raw_events.t
 
     def test_to_dict(self, synthetic_evt3_bytes):
         """Test to_dict() returns proper dictionary."""
@@ -135,6 +159,194 @@ class TestErrorHandling:
         
         events = evt3.decode_bytes(b"")
         assert len(events) == 0
+
+
+class TestEventsFromArrays:
+    """Tests for NumPy-native Events construction."""
+
+    def test_from_arrays_copy_false_preserves_arrays(self):
+        import evt3
+
+        x = np.array([1, 2], dtype=np.uint16)
+        y = np.array([3, 4], dtype=np.uint16)
+        p = np.array([0, 1], dtype=np.uint8)
+        t = np.array([10, 20], dtype=np.uint64)
+
+        events = evt3.Events.from_arrays(
+            x=x, y=y, p=p, t=t, geometry=(1280, 720), copy=False
+        )
+
+        assert events.x is x
+        assert events.y is y
+        assert events.p is p
+        assert events.t is t
+        assert events.sensor_size == (1280, 720)
+
+    def test_from_arrays_copy_true_normalizes_integer_inputs(self):
+        import evt3
+
+        events = evt3.Events.from_arrays(
+            x=np.array([1, 2], dtype=np.int32),
+            y=np.array([3, 4], dtype=np.int64),
+            p=np.array([0, 9], dtype=np.int16),
+            t=np.array([10, 20], dtype=np.int64),
+            geometry=(1280, 720),
+            copy=True,
+        )
+
+        assert events.x.dtype == np.uint16
+        assert events.y.dtype == np.uint16
+        assert events.p.dtype == np.uint8
+        assert events.t.dtype == np.uint64
+        np.testing.assert_array_equal(events.p, np.array([0, 1], dtype=np.uint8))
+
+    def test_from_arrays_rejects_unsorted_timestamps(self):
+        import evt3
+
+        with pytest.raises(ValueError, match="first decrease at index 2"):
+            evt3.Events.from_arrays(
+                x=np.array([1, 2, 3], dtype=np.uint16),
+                y=np.array([1, 2, 3], dtype=np.uint16),
+                p=np.array([0, 1, 0], dtype=np.uint8),
+                t=np.array([10, 20, 15], dtype=np.uint64),
+                geometry=(1280, 720),
+            )
+
+    def test_from_arrays_rejects_geometry_mismatch(self):
+        import evt3
+
+        with pytest.raises(ValueError, match="outside geometry width 2"):
+            evt3.Events.from_arrays(
+                x=np.array([2], dtype=np.uint16),
+                y=np.array([0], dtype=np.uint16),
+                p=np.array([1], dtype=np.uint8),
+                t=np.array([0], dtype=np.uint64),
+                geometry=(2, 2),
+            )
+
+
+class FakeAugurServer:
+    """Tiny protocol-v1 test server."""
+
+    def __init__(self, *, max_chunk_events=1_048_576):
+        self.max_chunk_events = max_chunk_events
+        self.messages = []
+        self.payloads = []
+        self._ready = threading.Event()
+        self._thread = threading.Thread(target=self._serve, daemon=True)
+        self._listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self._listener.bind(("127.0.0.1", 0))
+        self._listener.listen(1)
+        self.port = self._listener.getsockname()[1]
+
+    def __enter__(self):
+        self._thread.start()
+        self._ready.wait(timeout=2)
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        self._thread.join(timeout=2)
+        self._listener.close()
+
+    def _serve(self):
+        self._ready.set()
+        conn, _addr = self._listener.accept()
+        with conn:
+            file = conn.makefile("rwb", buffering=0)
+            hello = self._read_json(file)
+            self.messages.append(hello)
+            self._write_json(
+                file,
+                {
+                    "type": "hello_ok",
+                    "protocol": 1,
+                    "server": "augur",
+                    "max_chunk_events": self.max_chunk_events,
+                },
+            )
+
+            start = self._read_json(file)
+            self.messages.append(start)
+            self._write_json(file, {"type": "start_ok"})
+
+            while True:
+                message = self._read_json(file)
+                self.messages.append(message)
+                if message["type"] == "finish_events":
+                    self._write_json(file, {"type": "finish_ok"})
+                    return
+                assert message["type"] == "event_batch"
+                payload = file.read(message["bytes"])
+                self.payloads.append(payload)
+                self._write_json(file, {"type": "batch_ok", "events": message["events"]})
+
+    @staticmethod
+    def _read_json(file):
+        return json.loads(file.readline().decode("utf-8"))
+
+    @staticmethod
+    def _write_json(file, message):
+        file.write(json.dumps(message).encode("utf-8") + b"\n")
+
+
+class TestAugurConnector:
+    """Tests for the Python-to-Augur connector protocol."""
+
+    def test_publish_events_sends_chunked_packed_records(self):
+        import evt3
+
+        events = evt3.Events.from_arrays(
+            x=np.array([1, 2, 3, 4, 5], dtype=np.uint16),
+            y=np.array([10, 20, 30, 40, 50], dtype=np.uint16),
+            p=np.array([0, 1, 0, 1, 1], dtype=np.uint8),
+            t=np.array([100, 200, 300, 400, 500], dtype=np.uint64),
+            geometry=(1280, 720),
+        )
+
+        with FakeAugurServer(max_chunk_events=3) as server:
+            evt3.augur.publish_events(
+                events,
+                port=server.port,
+                name="unit-test",
+                chunk_events=2,
+            )
+
+        assert [m["type"] for m in server.messages] == [
+            "hello",
+            "start_events",
+            "event_batch",
+            "event_batch",
+            "event_batch",
+            "finish_events",
+        ]
+        assert server.messages[1]["name"] == "unit-test"
+        assert server.messages[1]["geometry"] == [1280, 720]
+        assert server.messages[1]["event_count"] == 5
+        assert [m["events"] for m in server.messages if m["type"] == "event_batch"] == [
+            2,
+            2,
+            1,
+        ]
+
+        payload = b"".join(server.payloads)
+        assert len(payload) == 5 * evt3.augur.PACKED_EVENT_RECORD_BYTES
+        first = struct.unpack_from("<HHBBQ", payload, 0)
+        last = struct.unpack_from("<HHBBQ", payload, 4 * evt3.augur.PACKED_EVENT_RECORD_BYTES)
+        assert first == (1, 10, 0, 0, 100)
+        assert last == (5, 50, 1, 0, 500)
+
+    def test_publish_events_rejects_float_dtype(self):
+        import evt3
+
+        with pytest.raises(TypeError, match="got float32"):
+            evt3.augur.publish_events(
+                x=np.array([1], dtype=np.float32),
+                y=np.array([1], dtype=np.uint16),
+                p=np.array([1], dtype=np.uint8),
+                t=np.array([1], dtype=np.uint64),
+                geometry=(1280, 720),
+                port=1,
+            )
 
 
 class TestPandasIntegration:

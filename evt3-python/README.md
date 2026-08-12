@@ -40,6 +40,28 @@ t = events.timestamp  # np.ndarray[np.uint64] (microseconds)
 p = events.p
 t = events.t
 
+# Event arrays are stable objects, so repeated property access is cheap
+assert events.x is events.x
+assert events.y is events.y
+assert events.p is events.p
+assert events.t is events.t
+
+# Build an Events container from existing NumPy arrays
+events = evt3.Events.from_arrays(
+    x=x,
+    y=y,
+    p=p,
+    t=t,
+    geometry=(1280, 720),
+    copy=False,
+)
+
+# Publish decoded or transformed arrays into a running Augur session
+evt3.augur.publish_events(events, name="recording-analysis-window")
+
+with evt3.augur.connect() as augur:
+    augur.publish_events(events, name="raw")
+
 # Get as dictionary (useful for pandas)
 import pandas as pd
 df = pd.DataFrame(events.to_dict())
