@@ -5,6 +5,8 @@ members = [
     "evt3-cli",
     "evt3-python",
 ]
+# Deprecation shim for the old crate name, published on its own. See ADR 0006.
+exclude = ["compat/evt3-core"]
 
 [workspace.package]
 version = "0.4.0"

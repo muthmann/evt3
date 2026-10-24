@@ -1,0 +1,19 @@
+[package]
+name = "evt3-core"
+version = "0.4.1"
+edition = "2021"
+authors = ["Mika Uthmann <muthmann@physik.uni-bielefeld.de>"]
+license = "MIT"
+description = "Deprecated: renamed to `evt3`. This final release only re-exports `evt3`; depend on `evt3` directly."
+readme = "README.md"
+homepage = "https://github.com/muthmann/evt3"
+repository = "https://github.com/muthmann/evt3"
+documentation = "https://docs.rs/evt3"
+keywords = ["event-camera", "evt3", "prophesee", "deprecated"]
+categories = ["parser-implementations"]
+
+[badges]
+maintenance = { status = "deprecated" }
+
+[dependencies]
+evt3 = "0.4"
