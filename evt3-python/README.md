@@ -1,4 +1,4 @@
-# evt3 — fast event camera decoder for Python
+# evt3 — highly optimized event camera decoder for Python
 
 [![PyPI](https://img.shields.io/pypi/v/evt3)](https://pypi.org/project/evt3/)
 [![Python versions](https://img.shields.io/pypi/pyversions/evt3)](https://pypi.org/project/evt3/)
@@ -15,9 +15,12 @@ Use it for event-based vision, neuromorphic research, and DVS data analysis
 when you need `.raw` files as `x`, `y`, `p`, `t` arrays without installing a
 full camera SDK.
 
-- **Fast** — 55M events/second decode-only; the companion CLI is 1.62x faster
-  than the optimized C++ reference on full CSV output, with byte-identical
-  results.
+- **Highly optimized** — about 390 million events per second from a `.raw`
+  file into NumPy, 3.7x faster than evt3 0.4 (Apple M1 Pro, 325 MiB
+  recording). The companion CLI exports CSV 1.73x faster than Prophesee's
+  official C++ decoder sample, with byte-identical output.
+- **Explicit threads** — up to four decoder threads by default; `threads=1`
+  decodes serially.
 - **NumPy-native** — zero-copy `uint16`/`uint8`/`uint64` arrays, stable across
   repeated access.
 - **Bounded memory** — batch iterators for recordings larger than RAM.
@@ -59,6 +62,23 @@ t = events.t
 duration_s = (t[-1] - t[0]) / 1e6
 print(f"Duration: {duration_s:.2f} s, rate: {len(events) / duration_s:,.0f} ev/s")
 ```
+
+### Decoder threads
+
+All decoding functions and decoder/iterator constructors accept keyword-only
+`threads`: `0` (default) selects Auto (up to four total threads), `1` runs
+serially, and `n > 1` caps total decoder threads including the caller.
+
+```python
+events = evt3.decode_file("recording.raw", threads=1)
+decoder = evt3.Decoder(threads=2)
+print(evt3.PARALLEL_ENABLED)
+```
+
+Use one decoder thread when the application already decodes files concurrently.
+Build with `maturin develop --no-default-features` to omit Rayon entirely;
+Auto then runs serially and explicit requests greater than one raise an error.
+These controls affect EVT3 decoding; HDF5 uses its existing read path.
 
 ### Convert to pandas
 
@@ -153,10 +173,15 @@ available as a Rust library with `cargo add evt3`.
 
 The decoder is implemented in Rust with attention to throughput:
 
-- Streaming buffer decoding for large files
-- Columnar layout for cache-efficient NumPy access
-- Minimal allocation during decoding
+- Raw bytes are decoded in one pass, without an intermediate word buffer
+- Complete vector groups are expanded together
+- Events go straight into NumPy's columnar layout, with counted allocation
+- Large files and chunks (64 KiB or more) are split across decoder threads
+  after the exact decoder state at each split point is recovered
 - The GIL is released while Rust reads and decodes
+
+Measurements and methods:
+[benchmarks](https://github.com/muthmann/evt3/blob/main/benchmarks/README.md).
 
 `decode_file`, `decode_file_with_triggers`, and `decode_bytes` stay
 source-compatible. `decode_file` writes directly into the final NumPy columns.

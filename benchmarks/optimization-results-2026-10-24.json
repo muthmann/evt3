@@ -1,0 +1,107 @@
+{
+  "date": "2026-10-24",
+  "baseline_commit": "8554807",
+  "platform": "aarch64-apple-darwin",
+  "compiler": "rustc 1.95.0 (59807616e 2026-04-14), LLVM 22.1.2",
+  "build": "Cargo bench profile; thin LTO; codegen-units=1; no optional features",
+  "input": {
+    "path": "test_data/laser.raw",
+    "bytes": 341306299,
+    "sha256": "e0eea3c9144bbbf78729e217ed3b63f9f56129ec9afae3840d59edbf4cddbbc2"
+  },
+  "criterion": {
+    "warm_up_seconds": 1,
+    "measurement_seconds": 2,
+    "samples": 10,
+    "note": "Raw interval strings are Criterion 95% confidence intervals with a point estimate in the middle. Full-file estimates were noisy; use the alternating process check for those workflows.",
+    "before": {
+      "decode_file/full_file": "786.79 ms 1.0567 s 1.5135 s",
+      "decode_file/full_file_columns": "917.65 ms 1.0364 s 1.1818 s",
+      "decode_buffer/synthetic_100k_events": "590.30 \u00b5s 600.02 \u00b5s 618.09 \u00b5s",
+      "decode_bytes/even_chunks": "678.41 \u00b5s 722.50 \u00b5s 782.52 \u00b5s",
+      "decode_bytes/irregular_chunks": "639.40 \u00b5s 650.73 \u00b5s 675.97 \u00b5s",
+      "decode_vectors/sparse_vector_masks": "1.2593 ms 1.2775 ms 1.2879 ms",
+      "decode_vector_density/columns/empty": "545.70 \u00b5s 561.03 \u00b5s 580.37 \u00b5s",
+      "decode_vector_density/rows/empty": "534.81 \u00b5s 536.85 \u00b5s 538.22 \u00b5s",
+      "decode_vector_density/columns/sparse": "827.10 \u00b5s 832.66 \u00b5s 840.87 \u00b5s",
+      "decode_vector_density/rows/sparse": "660.64 \u00b5s 670.42 \u00b5s 699.54 \u00b5s",
+      "decode_vector_density/columns/dense": "2.3816 ms 2.3876 ms 2.3969 ms",
+      "decode_vector_density/rows/dense": "1.4749 ms 1.5158 ms 1.5730 ms",
+      "decode_vector_density/columns/varying": "1.2186 ms 1.2242 ms 1.2311 ms",
+      "decode_vector_density/rows/varying": "1.0468 ms 1.0516 ms 1.0559 ms"
+    },
+    "after": {
+      "decode_file/full_file": "739.70 ms 744.30 ms 752.14 ms",
+      "decode_file/full_file_columns": "819.97 ms 847.36 ms 901.37 ms",
+      "decode_buffer/synthetic_100k_events": "445.29 \u00b5s 446.06 \u00b5s 446.87 \u00b5s",
+      "decode_bytes/even_chunks": "478.05 \u00b5s 482.33 \u00b5s 486.40 \u00b5s",
+      "decode_bytes/irregular_chunks": "480.96 \u00b5s 482.78 \u00b5s 485.84 \u00b5s",
+      "decode_vectors/sparse_vector_masks": "1.1461 ms 1.1698 ms 1.2000 ms",
+      "decode_vector_density/columns/empty": "502.96 \u00b5s 503.56 \u00b5s 504.85 \u00b5s",
+      "decode_vector_density/rows/empty": "535.72 \u00b5s 536.43 \u00b5s 537.91 \u00b5s",
+      "decode_vector_density/columns/sparse": "660.97 \u00b5s 662.22 \u00b5s 663.42 \u00b5s",
+      "decode_vector_density/rows/sparse": "597.82 \u00b5s 598.47 \u00b5s 599.63 \u00b5s",
+      "decode_vector_density/columns/dense": "2.3175 ms 2.3255 ms 2.3438 ms",
+      "decode_vector_density/rows/dense": "1.4473 ms 1.4527 ms 1.4595 ms",
+      "decode_vector_density/columns/varying": "1.1258 ms 1.1286 ms 1.1310 ms",
+      "decode_vector_density/rows/varying": "924.38 \u00b5s 937.46 \u00b5s 957.20 \u00b5s"
+    }
+  },
+  "alternating_full_file": {
+    "method": "One warm-up per binary, 10 measured process invocations per binary per workflow; order alternated; includes process startup, benchmark setup, decoding, and result destruction.",
+    "seconds": {
+      "decode_file/full_file$": {
+        "before": [
+          0.9075652920000001,
+          0.9049987080000008,
+          0.9110263749999996,
+          0.9125688749999998,
+          0.9469681249999997,
+          0.9055021659999998,
+          0.9064877920000001,
+          0.9089044999999984,
+          0.9114964589999985,
+          0.9110489580000021
+        ],
+        "after": [
+          0.8988318330000005,
+          0.9014161659999997,
+          0.9012510000000002,
+          0.8998291670000009,
+          0.9070205419999997,
+          0.8986450419999983,
+          0.8937592919999986,
+          0.899392958,
+          0.8940949590000002,
+          0.8956769160000029
+        ]
+      },
+      "decode_file/full_file_columns$": {
+        "before": [
+          0.9525684580000018,
+          0.9568530410000022,
+          0.9525287079999991,
+          0.9541437080000001,
+          0.9485363329999998,
+          0.9549657080000031,
+          0.9536938330000027,
+          0.9555721249999962,
+          0.957624832999997,
+          0.9622554159999979
+        ],
+        "after": [
+          0.954218166999997,
+          0.9574446250000008,
+          0.9542885420000005,
+          0.965773875,
+          0.9555327499999997,
+          0.9617540000000027,
+          0.9700275000000005,
+          0.963817958000007,
+          0.9550380000000018,
+          0.9582437079999977
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,642 @@
+{
+  "provenance": {
+    "rust_baseline_ref": "8554807",
+    "rust_baseline_commit": "85548072841ee92de409206883f4c130644ad4fe",
+    "rust_current_commit": "85548072841ee92de409206883f4c130644ad4fe",
+    "rust_current_diff_sha256": "23f810a4d29525d33cd14ae849188adcc913f1265aeccc685d161a3aaab5bb22",
+    "rustc": "rustc 1.95.0 (59807616e 2026-04-14)\nbinary: rustc\ncommit-hash: 59807616e1fa2540724bfbac14d7976d7e4a3860\ncommit-date: 2026-04-14\nhost: aarch64-apple-darwin\nrelease: 1.95.0\nLLVM version: 22.1.2",
+    "python": "3.13.5 (main, Jun 12 2025, 12:22:43) [Clang 20.1.4 ]",
+    "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+    "cpp_source": "cpp_reference/metavision_evt3_raw_file_decoder.cpp",
+    "cpp_source_url": "https://github.com/prophesee-ai/openeb/blob/main/standalone_samples/metavision_evt3_raw_file_decoder/metavision_evt3_raw_file_decoder.cpp",
+    "cpp_source_sha256": "0038d3a0c69b80bea8dc350b3c295592aed92e6ace5030c16c35da6b6c1bb7d0",
+    "cpp_build": {
+      "compiler": "Apple clang version 21.0.0 (clang-2100.3.34.2)",
+      "flags": [
+        "-O3",
+        "-DNDEBUG",
+        "-std=c++17"
+      ]
+    },
+    "binary_sha256": {
+      "rust_before": "9109788ab77ad30e705675bb3dafe9e509854de404b939b6ca676358d95d842b",
+      "rust_current": "4ac31a6ff2c4c97364e3055ab2cee54a59498dd90d803af17643835e7a10c391",
+      "prophesee_cpp": "8178f616ccb559c022f17d34f62da3a8d9e409dc4f1933ab5baa50b84e7afe4d"
+    },
+    "dependency_lock_sha256": "28c8304dcc87517b9908fbb1b9cfa844a1b0ca22261dbde793fc1c2ecf6cdefd",
+    "rust_flags": {
+      "RUSTFLAGS": null,
+      "CARGO_ENCODED_RUSTFLAGS": null
+    }
+  },
+  "iterations": 5,
+  "method": {
+    "warmups_per_case_and_implementation": 1,
+    "order": "rotating",
+    "filesystem_cache": "warm",
+    "csv_output": "/dev/null",
+    "csv_timing": "process startup + file read + decode + CSV formatting",
+    "python_timing": "file read + decode + array/object creation; imports and checksums excluded",
+    "python_batches_timing": "bounded decode + checksum consumer",
+    "multi_input_origin": "four identical recording prefixes",
+    "workers": 4
+  },
+  "inputs": {
+    "small": [
+      {
+        "path": "target/benchmark-comparison/comparison-p6n4kq1x/small.raw",
+        "bytes": 8388608,
+        "sha256": "c3b38bccd440dde55bc62a795e2554a92d405dde3a6cacacd8815dfd0452ab09"
+      }
+    ],
+    "large": [
+      {
+        "path": "test_data/laser.raw",
+        "bytes": 341306299,
+        "sha256": "e0eea3c9144bbbf78729e217ed3b63f9f56129ec9afae3840d59edbf4cddbbc2"
+      }
+    ],
+    "many": [
+      {
+        "path": "target/benchmark-comparison/comparison-p6n4kq1x/multi-0.raw",
+        "bytes": 67108864,
+        "sha256": "88cd9b0b47a08ad65dbb1bfd7b129d3e91607e89de1b3c48b1b103280f9d4461"
+      },
+      {
+        "path": "target/benchmark-comparison/comparison-p6n4kq1x/multi-1.raw",
+        "bytes": 67108864,
+        "sha256": "88cd9b0b47a08ad65dbb1bfd7b129d3e91607e89de1b3c48b1b103280f9d4461"
+      },
+      {
+        "path": "target/benchmark-comparison/comparison-p6n4kq1x/multi-2.raw",
+        "bytes": 67108864,
+        "sha256": "88cd9b0b47a08ad65dbb1bfd7b129d3e91607e89de1b3c48b1b103280f9d4461"
+      },
+      {
+        "path": "target/benchmark-comparison/comparison-p6n4kq1x/multi-3.raw",
+        "bytes": 67108864,
+        "sha256": "88cd9b0b47a08ad65dbb1bfd7b129d3e91607e89de1b3c48b1b103280f9d4461"
+      }
+    ]
+  },
+  "csv_verification": [
+    {
+      "file": "target/benchmark-comparison/comparison-p6n4kq1x/small.raw",
+      "prefix_bytes": 8388608,
+      "csv_sha256": "398d63a52eeb7291caa1346037f674ef0b6209772d3c512e2aa6c70b9aed12f4"
+    },
+    {
+      "file": "test_data/laser.raw",
+      "prefix_bytes": 8388608,
+      "csv_sha256": "398d63a52eeb7291caa1346037f674ef0b6209772d3c512e2aa6c70b9aed12f4"
+    },
+    {
+      "file": "target/benchmark-comparison/comparison-p6n4kq1x/multi-0.raw",
+      "prefix_bytes": 8388608,
+      "csv_sha256": "398d63a52eeb7291caa1346037f674ef0b6209772d3c512e2aa6c70b9aed12f4"
+    },
+    {
+      "file": "target/benchmark-comparison/comparison-p6n4kq1x/multi-1.raw",
+      "prefix_bytes": 8388608,
+      "csv_sha256": "398d63a52eeb7291caa1346037f674ef0b6209772d3c512e2aa6c70b9aed12f4"
+    },
+    {
+      "file": "target/benchmark-comparison/comparison-p6n4kq1x/multi-2.raw",
+      "prefix_bytes": 8388608,
+      "csv_sha256": "398d63a52eeb7291caa1346037f674ef0b6209772d3c512e2aa6c70b9aed12f4"
+    },
+    {
+      "file": "target/benchmark-comparison/comparison-p6n4kq1x/multi-3.raw",
+      "prefix_bytes": 8388608,
+      "csv_sha256": "398d63a52eeb7291caa1346037f674ef0b6209772d3c512e2aa6c70b9aed12f4"
+    }
+  ],
+  "cases": [
+    {
+      "name": "csv/small",
+      "implementations": {
+        "rust_before": {
+          "samples_seconds": [
+            0.17627458399510942,
+            0.17779091699048877,
+            0.17767487501259893,
+            0.17706058401381597,
+            0.17816137499175966
+          ],
+          "mean_seconds": 0.17739246700075456,
+          "median_seconds": 0.17767487501259893,
+          "min_seconds": 0.17627458399510942,
+          "max_seconds": 0.17816137499175966
+        },
+        "rust_current": {
+          "samples_seconds": [
+            0.17811437501222827,
+            0.1763817500032019,
+            0.17532154099899344,
+            0.17578883399255574,
+            0.17730133401346393
+          ],
+          "mean_seconds": 0.17658156680408865,
+          "median_seconds": 0.1763817500032019,
+          "min_seconds": 0.17532154099899344,
+          "max_seconds": 0.17811437501222827
+        },
+        "prophesee_cpp": {
+          "samples_seconds": [
+            0.2722088329901453,
+            0.2723918340052478,
+            0.27502345902030356,
+            0.2753236250136979,
+            0.274571542016929
+          ],
+          "mean_seconds": 0.2739038586092647,
+          "median_seconds": 0.274571542016929,
+          "min_seconds": 0.2722088329901453,
+          "max_seconds": 0.2753236250136979
+        }
+      },
+      "current_speedup_vs": {
+        "rust_before": 1.0073313991349648,
+        "prophesee_cpp": 1.55668906795598
+      },
+      "event_count": null,
+      "signature": null,
+      "workers": 1,
+      "input_bytes": 8388608
+    },
+    {
+      "name": "csv/large",
+      "implementations": {
+        "rust_before": {
+          "samples_seconds": [
+            6.792141042009462,
+            7.251554415997816,
+            7.153314333991148,
+            6.853349125012755,
+            6.83582308300538
+          ],
+          "mean_seconds": 6.977236400003312,
+          "median_seconds": 6.853349125012755,
+          "min_seconds": 6.792141042009462,
+          "max_seconds": 7.251554415997816
+        },
+        "rust_current": {
+          "samples_seconds": [
+            6.759933541994542,
+            6.723220082989428,
+            6.843026415997883,
+            6.814685333985835,
+            6.845025666989386
+          ],
+          "mean_seconds": 6.797178208391415,
+          "median_seconds": 6.814685333985835,
+          "min_seconds": 6.723220082989428,
+          "max_seconds": 6.845025666989386
+        },
+        "prophesee_cpp": {
+          "samples_seconds": [
+            10.838148999988334,
+            13.620442332990933,
+            11.468248457997106,
+            11.096301957994001,
+            10.979512999998406
+          ],
+          "mean_seconds": 11.600530949793756,
+          "median_seconds": 11.096301957994001,
+          "min_seconds": 10.838148999988334,
+          "max_seconds": 13.620442332990933
+        }
+      },
+      "current_speedup_vs": {
+        "rust_before": 1.0056735988724377,
+        "prophesee_cpp": 1.6282926377620277
+      },
+      "event_count": null,
+      "signature": null,
+      "workers": 1,
+      "input_bytes": 341306299
+    },
+    {
+      "name": "csv/many_sequential",
+      "implementations": {
+        "rust_before": {
+          "samples_seconds": [
+            5.570510834018933,
+            5.460940082994057,
+            5.455919125000946,
+            5.686119083984522,
+            5.465184542001225
+          ],
+          "mean_seconds": 5.527734733599937,
+          "median_seconds": 5.465184542001225,
+          "min_seconds": 5.455919125000946,
+          "max_seconds": 5.686119083984522
+        },
+        "rust_current": {
+          "samples_seconds": [
+            5.451020374981454,
+            5.548910084005911,
+            5.452813374984544,
+            5.4386020000092685,
+            5.530130417027976
+          ],
+          "mean_seconds": 5.48429525020183,
+          "median_seconds": 5.452813374984544,
+          "min_seconds": 5.4386020000092685,
+          "max_seconds": 5.548910084005911
+        },
+        "prophesee_cpp": {
+          "samples_seconds": [
+            9.064990000013495,
+            9.094129040982807,
+            9.279551083018305,
+            8.909306207991904,
+            8.788267833006103
+          ],
+          "mean_seconds": 9.027248833002522,
+          "median_seconds": 9.064990000013495,
+          "min_seconds": 8.788267833006103,
+          "max_seconds": 9.279551083018305
+        }
+      },
+      "current_speedup_vs": {
+        "rust_before": 1.0022687677288638,
+        "prophesee_cpp": 1.6624427385687284
+      },
+      "event_count": null,
+      "signature": null,
+      "workers": 1,
+      "input_bytes": 268435456
+    },
+    {
+      "name": "csv/many_parallel",
+      "implementations": {
+        "rust_before": {
+          "samples_seconds": [
+            1.5034254589991178,
+            1.4201248750032391,
+            1.401543457992375,
+            1.4423701250052545,
+            1.419127542001661
+          ],
+          "mean_seconds": 1.4373182918003296,
+          "median_seconds": 1.4201248750032391,
+          "min_seconds": 1.401543457992375,
+          "max_seconds": 1.5034254589991178
+        },
+        "rust_current": {
+          "samples_seconds": [
+            1.4119935000198893,
+            1.3966990000044461,
+            1.3918649170082062,
+            1.3950686670141295,
+            1.3874207920162007
+          ],
+          "mean_seconds": 1.3966093752125743,
+          "median_seconds": 1.3950686670141295,
+          "min_seconds": 1.3874207920162007,
+          "max_seconds": 1.4119935000198893
+        },
+        "prophesee_cpp": {
+          "samples_seconds": [
+            2.2792303749884013,
+            2.4735976250085514,
+            2.245836792018963,
+            2.2413565830211155,
+            2.288234833016759
+          ],
+          "mean_seconds": 2.305651241610758,
+          "median_seconds": 2.2792303749884013,
+          "min_seconds": 2.2413565830211155,
+          "max_seconds": 2.4735976250085514
+        }
+      },
+      "current_speedup_vs": {
+        "rust_before": 1.017960555334339,
+        "prophesee_cpp": 1.6337764791654639
+      },
+      "event_count": null,
+      "signature": null,
+      "workers": 4,
+      "input_bytes": 268435456
+    },
+    {
+      "name": "python_full/small",
+      "implementations": {
+        "rust_before": {
+          "samples_seconds": [
+            0.02362158300820738,
+            0.022932542022317648,
+            0.02393699999083765,
+            0.023054207995301113,
+            0.023737915995297953
+          ],
+          "mean_seconds": 0.02345664980239235,
+          "median_seconds": 0.02362158300820738,
+          "min_seconds": 0.022932542022317648,
+          "max_seconds": 0.02393699999083765
+        },
+        "rust_current": {
+          "samples_seconds": [
+            0.023289999982807785,
+            0.023304375004954636,
+            0.02316516701830551,
+            0.023007792013231665,
+            0.023132875008741394
+          ],
+          "mean_seconds": 0.023180041805608197,
+          "median_seconds": 0.02316516701830551,
+          "min_seconds": 0.023007792013231665,
+          "max_seconds": 0.023304375004954636
+        }
+      },
+      "current_speedup_vs": {
+        "rust_before": 1.0197026850504123
+      },
+      "event_count": 2858123,
+      "signature": [
+        {
+          "count": 2858123,
+          "sums": [
+            1765105916,
+            969372738,
+            335469,
+            18503473076332
+          ],
+          "first_timestamp": 6437104,
+          "last_timestamp": 6510967
+        }
+      ],
+      "workers": 1,
+      "input_bytes": 8388608
+    },
+    {
+      "name": "python_full/large",
+      "implementations": {
+        "rust_before": {
+          "samples_seconds": [
+            0.9364448330015875,
+            0.966450417006854,
+            0.933950584003469,
+            0.9361632500076666,
+            0.9329325419967063
+          ],
+          "mean_seconds": 0.9411883252032567,
+          "median_seconds": 0.9361632500076666,
+          "min_seconds": 0.9329325419967063,
+          "max_seconds": 0.966450417006854
+        },
+        "rust_current": {
+          "samples_seconds": [
+            0.9354540840140544,
+            0.9349824590026401,
+            0.9286624160013162,
+            0.922770709003089,
+            0.942655165999895
+          ],
+          "mean_seconds": 0.9329049668041989,
+          "median_seconds": 0.9349824590026401,
+          "min_seconds": 0.922770709003089,
+          "max_seconds": 0.942655165999895
+        }
+      },
+      "current_speedup_vs": {
+        "rust_before": 1.0012629017728163
+      },
+      "event_count": 116300447,
+      "signature": [
+        {
+          "count": 116300447,
+          "sums": [
+            71875563867,
+            39430950650,
+            13637152,
+            922843050073527
+          ],
+          "first_timestamp": 6437104,
+          "last_timestamp": 9432182
+        }
+      ],
+      "workers": 1,
+      "input_bytes": 341306299
+    },
+    {
+      "name": "python_full/many_sequential",
+      "implementations": {
+        "rust_before": {
+          "samples_seconds": [
+            0.7311698749836069,
+            0.7346057500108145,
+            0.7333383329969365,
+            0.7386081670119893,
+            0.7293322500190698
+          ],
+          "mean_seconds": 0.7334108750044834,
+          "median_seconds": 0.7333383329969365,
+          "min_seconds": 0.7293322500190698,
+          "max_seconds": 0.7386081670119893
+        },
+        "rust_current": {
+          "samples_seconds": [
+            0.7252312080236152,
+            0.7253580419928767,
+            0.7307666249980684,
+            0.7272618749993853,
+            0.7281663749890868
+          ],
+          "mean_seconds": 0.7273568250006065,
+          "median_seconds": 0.7272618749993853,
+          "min_seconds": 0.7252312080236152,
+          "max_seconds": 0.7307666249980684
+        }
+      },
+      "current_speedup_vs": {
+        "rust_before": 1.0083552544227021
+      },
+      "event_count": 91444056,
+      "signature": [
+        {
+          "count": 22861014,
+          "sums": [
+            14128113516,
+            7751766724,
+            2679550,
+            153894328154957
+          ],
+          "first_timestamp": 6437104,
+          "last_timestamp": 7026273
+        },
+        {
+          "count": 22861014,
+          "sums": [
+            14128113516,
+            7751766724,
+            2679550,
+            153894328154957
+          ],
+          "first_timestamp": 6437104,
+          "last_timestamp": 7026273
+        },
+        {
+          "count": 22861014,
+          "sums": [
+            14128113516,
+            7751766724,
+            2679550,
+            153894328154957
+          ],
+          "first_timestamp": 6437104,
+          "last_timestamp": 7026273
+        },
+        {
+          "count": 22861014,
+          "sums": [
+            14128113516,
+            7751766724,
+            2679550,
+            153894328154957
+          ],
+          "first_timestamp": 6437104,
+          "last_timestamp": 7026273
+        }
+      ],
+      "workers": 1,
+      "input_bytes": 268435456
+    },
+    {
+      "name": "python_full/many_parallel",
+      "implementations": {
+        "rust_before": {
+          "samples_seconds": [
+            0.19334225001512095,
+            0.21015041699865833,
+            0.1936651249998249,
+            0.1927328750025481,
+            0.20506041700718924
+          ],
+          "mean_seconds": 0.1989902168046683,
+          "median_seconds": 0.1936651249998249,
+          "min_seconds": 0.1927328750025481,
+          "max_seconds": 0.21015041699865833
+        },
+        "rust_current": {
+          "samples_seconds": [
+            0.19328791700536385,
+            0.19632741599343717,
+            0.19244854198768735,
+            0.19064187500043772,
+            0.2059289579920005
+          ],
+          "mean_seconds": 0.19572694159578533,
+          "median_seconds": 0.19328791700536385,
+          "min_seconds": 0.19064187500043772,
+          "max_seconds": 0.2059289579920005
+        }
+      },
+      "current_speedup_vs": {
+        "rust_before": 1.0019515342723186
+      },
+      "event_count": 91444056,
+      "signature": [
+        {
+          "count": 22861014,
+          "sums": [
+            14128113516,
+            7751766724,
+            2679550,
+            153894328154957
+          ],
+          "first_timestamp": 6437104,
+          "last_timestamp": 7026273
+        },
+        {
+          "count": 22861014,
+          "sums": [
+            14128113516,
+            7751766724,
+            2679550,
+            153894328154957
+          ],
+          "first_timestamp": 6437104,
+          "last_timestamp": 7026273
+        },
+        {
+          "count": 22861014,
+          "sums": [
+            14128113516,
+            7751766724,
+            2679550,
+            153894328154957
+          ],
+          "first_timestamp": 6437104,
+          "last_timestamp": 7026273
+        },
+        {
+          "count": 22861014,
+          "sums": [
+            14128113516,
+            7751766724,
+            2679550,
+            153894328154957
+          ],
+          "first_timestamp": 6437104,
+          "last_timestamp": 7026273
+        }
+      ],
+      "workers": 4,
+      "input_bytes": 268435456
+    },
+    {
+      "name": "python_batches/large",
+      "implementations": {
+        "rust_before": {
+          "samples_seconds": [
+            1.2158150829782244,
+            1.2199112079979386,
+            1.2318092919886112,
+            1.230685624992475,
+            1.231807000003755
+          ],
+          "mean_seconds": 1.226005641592201,
+          "median_seconds": 1.230685624992475,
+          "min_seconds": 1.2158150829782244,
+          "max_seconds": 1.2318092919886112
+        },
+        "rust_current": {
+          "samples_seconds": [
+            1.2399407920020167,
+            1.2156299999915063,
+            1.2282463750161696,
+            1.227910958987195,
+            1.2314047500258312
+          ],
+          "mean_seconds": 1.2286265752045438,
+          "median_seconds": 1.2282463750161696,
+          "min_seconds": 1.2156299999915063,
+          "max_seconds": 1.2399407920020167
+        }
+      },
+      "current_speedup_vs": {
+        "rust_before": 1.0019859614698827
+      },
+      "event_count": 116300447,
+      "signature": [
+        {
+          "count": 116300447,
+          "sums": [
+            71875563867,
+            39430950650,
+            13637152,
+            922843050073527
+          ],
+          "first_timestamp": 6437104,
+          "last_timestamp": 9432182
+        }
+      ]
+    }
+  ],
+  "unavailable": {
+    "prophesee_cpp_python_decode_only": "The unmodified standalone reference exports CSV, not NumPy arrays; no comparable decode-only ratio is reported."
+  },
+  "status": "complete"
+}
