@@ -257,31 +257,23 @@ def print_results(results: list, file_path: Path):
     print()
 
     # Table header
-    print(f"{'Decoder':<20} {'Avg Time':<12} {'Events/sec':<15} {'Speedup':<10}")
+    print(f"{'Decoder':<22} {'Avg Time':<12} {'Events/sec':<15}")
     print("-" * 60)
-
-    # Use C++ as the baseline when available, otherwise use the slowest result.
-    cpp_result = next((r for r in results if r["name"] == "C++ Reference"), None)
-    baseline_time = (
-        cpp_result["avg_time"]
-        if cpp_result is not None
-        else max(r["avg_time"] for r in results if r)
-    )
 
     for result in results:
         if result is None:
             continue
 
-        speedup = baseline_time / result["avg_time"]
         print(
-            f"{result['name']:<20} "
+            f"{result['name']:<22} "
             f"{result['avg_time']:.3f}s{'':<6} "
-            f"{format_number(result['events_per_sec'])}/s{'':<6} "
-            f"{speedup:.2f}x"
+            f"{format_number(result['events_per_sec'])}/s"
         )
 
     print()
     print(f"Total events decoded: {format_number(results[0]['event_count'])}")
+    print("Python measures decode to memory; CLI/C++ also format and write CSV.")
+    print("Use --comparison-suite for matching workloads against both baselines.")
 
 
 def main():
@@ -306,7 +298,7 @@ def main():
     parser.add_argument(
         "--cpp-binary",
         type=Path,
-        default=Path(__file__).parent.parent / "cpp_reference" / "evt3_decoder",
+        default=None,
         help="Path to the optimized C++ reference binary",
     )
     parser.add_argument(
@@ -315,6 +307,35 @@ def main():
         default=8,
         help="Input prefix size used for byte-for-byte CSV verification",
     )
+    parser.add_argument(
+        "--comparison-suite", action="store_true",
+        help="Build and compare Prophesee C++, pre-change Rust, and current Rust",
+    )
+    parser.add_argument("--decode-only", action="store_true",
+                        help="Skip CSV timings in the comparison suite; still verify C++ CSV equality")
+    parser.add_argument("--cases", nargs="+", help="Run only matching suite case names (shell-style patterns)")
+    parser.add_argument(
+        "--rust-baseline-ref", default="HEAD",
+        help="Git commit/ref for the pre-change Rust baseline (default: HEAD)",
+    )
+    parser.add_argument("--workers", type=int, default=4, help="Parallel file workers")
+    parser.add_argument("--decoder-threads", type=int, default=None,
+                        help="Candidate decoder policy: 0=Auto, 1=serial, n>1=total thread cap; omitted uses each API default")
+    parser.add_argument("--small-mib", type=int, default=8, help="Small-file prefix size")
+    parser.add_argument(
+        "--multi-file-mib", type=int, default=64,
+        help="Size of each of four generated multi-file prefixes",
+    )
+    parser.add_argument(
+        "--multi-files", type=Path, nargs="+",
+        help="Use these independent recordings instead of generated prefixes",
+    )
+    parser.add_argument(
+        "--work-dir", type=Path,
+        default=Path(tempfile.gettempdir()) / "evt3-benchmark-comparison",
+        help="Build-cache and temporary-fixture directory for --comparison-suite",
+    )
+    parser.add_argument("--output", type=Path, help="Write comparison samples and provenance as JSON")
     args = parser.parse_args()
 
     if args.iterations < 1:
@@ -326,11 +347,21 @@ def main():
         print(f"Error: File not found: {args.file}")
         sys.exit(1)
 
+    if args.comparison_suite:
+        if args.csv_comparison_only:
+            parser.error("--comparison-suite and --csv-comparison-only are separate modes")
+        if min(args.workers, args.small_mib, args.multi_file_mib) < 1:
+            parser.error("workers and fixture sizes must be positive")
+        from comparison_suite import run_suite
+
+        run_suite(args)
+        return
+
     if args.csv_comparison_only:
         benchmark_cli_csv_comparison(
             args.file,
             Path(__file__).parent.parent / "target" / "release" / "evt3",
-            args.cpp_binary,
+            args.cpp_binary or Path(__file__).parent.parent / "cpp_reference" / "evt3_decoder",
             args.iterations,
             args.verify_prefix_mib,
         )
