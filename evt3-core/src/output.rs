@@ -1,6 +1,6 @@
 //! Output format writers for decoded EVT 3.0 data.
 //!
-//! Supports multiple output formats including CSV, binary, and Apache Arrow IPC.
+//! Supports CSV and packed binary output.
 
 use crate::sink::{EventColumns, TriggerColumns};
 use crate::types::{CdEvent, SensorMetadata, TriggerEvent};

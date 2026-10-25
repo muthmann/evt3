@@ -1,7 +1,7 @@
 //! Bounded-memory file decoding.
 
-use crate::decoder::{DecodeError, Evt3Decoder};
-use crate::sink::EventSink;
+use crate::decoder::{DecodeError, Evt3Decoder, Parallelism};
+use crate::sink::{ColumnarEventSink, EventSink};
 use crate::types::SensorMetadata;
 use std::fs::File;
 use std::io::{BufReader, Read};
@@ -75,6 +75,17 @@ impl EventFileReader {
         })
     }
 
+    /// Selects parallelism for [`Self::read_next_columns`]. Generic sinks stay serial.
+    /// HDF5 reads do not use EVT3 worker threads.
+    pub fn with_parallelism(mut self, parallelism: Parallelism) -> Self {
+        match &mut self.inner {
+            EventFileReaderInner::Raw { decoder, .. } => decoder.set_parallelism(parallelism),
+            #[cfg(feature = "hdf5")]
+            EventFileReaderInner::Hdf5(_) => {}
+        }
+        self
+    }
+
     /// Returns metadata parsed when the reader was opened.
     pub fn metadata(&self) -> &SensorMetadata {
         &self.metadata
@@ -83,7 +94,21 @@ impl EventFileReader {
     /// Decodes the next bounded batch into `sink`.
     ///
     /// Returns `true` when a batch was processed and `false` after EOF.
+    /// This generic path is always serial, including for built-in sinks.
     pub fn read_next_into<S: EventSink>(&mut self, sink: &mut S) -> Result<bool, DecodeError> {
+        self.read_next_with(sink, Evt3Decoder::decode_bytes_into)
+    }
+
+    /// Reads built-in columns using the explicitly configured execution policy.
+    pub fn read_next_columns(&mut self, sink: &mut ColumnarEventSink) -> Result<bool, DecodeError> {
+        self.read_next_with(sink, Evt3Decoder::decode_bytes_columns)
+    }
+
+    fn read_next_with<S: EventSink>(
+        &mut self,
+        sink: &mut S,
+        mut decode: impl FnMut(&mut Evt3Decoder, &[u8], &mut S),
+    ) -> Result<bool, DecodeError> {
         match &mut self.inner {
             EventFileReaderInner::Raw {
                 decoder,
@@ -106,7 +131,7 @@ impl EventFileReader {
 
                     let before_cd = sink.cd_len();
                     let before_triggers = sink.trigger_len();
-                    decoder.decode_bytes_into(&buffer[..bytes_read], sink);
+                    decode(decoder, &buffer[..bytes_read], sink);
                     if sink.cd_len() != before_cd || sink.trigger_len() != before_triggers {
                         return Ok(true);
                     }
