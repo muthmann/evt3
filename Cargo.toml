@@ -9,13 +9,13 @@ members = [
 exclude = ["compat/evt3-core"]
 
 [workspace.package]
-version = "0.4.1"
+version = "0.5.0"
 edition = "2021"
 authors = ["Mika Uthmann <muthmann@physik.uni-bielefeld.de>"]
 license = "MIT"
 repository = "https://github.com/muthmann/evt3"
 homepage = "https://github.com/muthmann/evt3"
-description = "High-performance EVT 3.0 raw data decoder for Prophesee event cameras"
+description = "Highly optimized EVT 3.0 raw data decoder for Prophesee event cameras"
 readme = "README.md"
 keywords = ["event-camera", "evt3", "prophesee", "decoder", "neuromorphic"]
 categories = ["parser-implementations", "encoding", "science"]
@@ -25,7 +25,7 @@ thiserror = "1.0"
 byteorder = "1.5"
 # Keep this version in step with workspace.package.version above.
 # crates.io rejects a publish whose path dependency carries no version.
-evt3 = { path = "evt3-core", version = "0.4.1" }
+evt3 = { path = "evt3-core", version = "0.5.0" }
 
 [profile.release]
 lto = "thin"
