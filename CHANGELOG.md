@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-10-24
+
 ### Fixed
 
 - `evt3.__version__` reported a stale hardcoded value — the published 0.4.0
@@ -17,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the installed binary is `evt3`
 - `--help` showed the crates.io listing description, which is written for the
   registry and reads oddly for someone already running the tool
+- The workspace `authors` entry in `Cargo.toml` was missing the closing `>`
+  of the e-mail address
+
+### Deprecated
+
+- The old crate name `evt3-core` gets a final release, 0.4.1, that re-exports
+  `evt3` and says so on crates.io. Depend on `evt3` instead. See
+  [ADR 0006](docs/adr/0006-deprecate-evt3-core-crate.md).
 
 ## [0.4.0] - 2026-08-12
 

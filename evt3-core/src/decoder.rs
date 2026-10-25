@@ -206,6 +206,10 @@ impl Evt3Decoder {
         while offset < even_bytes {
             let word_count = ((even_bytes - offset) / 2).min(WORD_BATCH);
             let batch_end = offset + word_count * 2;
+            // `as_chunks` needs Rust 1.88, above the 1.83 MSRV of the Python
+            // bindings. `unknown_lints` keeps clippy releases older than the
+            // lint quiet.
+            #[allow(unknown_lints, clippy::chunks_exact_to_as_chunks)]
             for (word, bytes) in words[..word_count]
                 .iter_mut()
                 .zip(remaining[offset..batch_end].chunks_exact(2))

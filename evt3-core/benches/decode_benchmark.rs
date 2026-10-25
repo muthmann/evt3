@@ -76,6 +76,8 @@ fn decode_file_benchmark(c: &mut Criterion) {
 fn decode_buffer_benchmark(c: &mut Criterion) {
     let data = synthetic_bytes();
 
+    // Matches the decoder, which keeps `chunks_exact` for the 1.83 MSRV.
+    #[allow(unknown_lints, clippy::chunks_exact_to_as_chunks)]
     let words: Vec<u16> = data
         .chunks_exact(2)
         .map(|c| u16::from_le_bytes([c[0], c[1]]))
