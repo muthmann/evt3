@@ -130,6 +130,28 @@ class TestDecodeBytes:
         assert np.array_equal(np.concatenate([batch.p for batch in batches]), expected.p)
         assert np.array_equal(np.concatenate([batch.t for batch in batches]), expected.t)
 
+    def test_parallel_feed_keeps_returned_arrays_stable(self, synthetic_evt3_bytes):
+        """Parallel packets and odd scalar packets produce identical arrays."""
+        import evt3
+
+        data = synthetic_evt3_bytes * 8193
+        scalar = evt3.Decoder()
+        expected = [scalar.feed(data[i:i + 4095]) for i in range(0, len(data), 4095)]
+        scalar.finish()
+
+        decoder = evt3.Decoder()
+        first = decoder.feed(data[:65536])
+        retained = {name: getattr(first, name).copy() for name in ("x", "y", "p", "t")}
+        second = decoder.feed(data[65536:])
+        decoder.finish()
+        decoder.reset()
+        decoder.feed(data)  # Previous arrays must outlive further decode work.
+        for name in retained:
+            assert np.array_equal(getattr(first, name), retained[name])
+            actual = np.concatenate([getattr(first, name), getattr(second, name)])
+            reference = np.concatenate([getattr(batch, name) for batch in expected])
+            assert np.array_equal(actual, reference)
+
     def test_file_batch_iterator_matches_decode_file(self, synthetic_evt3_bytes, tmp_path):
         """The optional bounded-memory workflow preserves the old API result."""
         import evt3
@@ -430,6 +452,83 @@ class TestAugurConnector:
                 geometry=(1280, 720),
                 port=1,
             )
+
+
+class TestParallelism:
+    @pytest.mark.parametrize("threads", [0, 1, 2, 4])
+    def test_every_entry_point_respects_threads_and_preserves_outputs(
+        self, synthetic_evt3_bytes, tmp_path, threads
+    ):
+        import evt3
+
+        if threads > 1 and not evt3.PARALLEL_ENABLED:
+            pytest.skip("parallel feature disabled")
+        payload = (synthetic_evt3_bytes + struct.pack("<H", 0xA301)) * 8192
+        path = tmp_path / "thread-policy.raw"
+        path.write_bytes(payload)
+        expected, expected_triggers = evt3.decode_file_with_triggers(str(path), threads=1)
+
+        def check(events):
+            for field in ("x", "y", "p", "t"):
+                np.testing.assert_array_equal(getattr(events, field), getattr(expected, field))
+
+        check(evt3.decode_bytes(payload, threads=threads))
+        check(evt3.decode_file(str(path), threads=threads))
+        actual, triggers = evt3.decode_file_with_triggers(str(path), threads=threads)
+        check(actual)
+        for field in ("value", "id", "timestamp"):
+            np.testing.assert_array_equal(getattr(triggers, field), getattr(expected_triggers, field))
+
+        decoder = evt3.Decoder(threads=threads)
+        # Include both an eligible even chunk and odd carried-byte boundaries.
+        packets = [payload[:65536]] + [payload[i:i + 4095] for i in range(65536, len(payload), 4095)]
+        retained = [decoder.feed(packet) for packet in packets]
+        decoder.finish()
+        for field in ("x", "y", "p", "t"):
+            np.testing.assert_array_equal(
+                np.concatenate([getattr(events, field) for events in retained]),
+                getattr(expected, field),
+            )
+        decoder.reset()
+        check(decoder.feed(payload))
+        decoder.finish()
+
+        for reader in (
+            evt3.decode_file_batches(str(path), 65536, threads=threads),
+            evt3.FileDecoder(str(path), 65536, threads=threads),
+        ):
+            batches = list(reader)
+            for field in ("x", "y", "p", "t"):
+                np.testing.assert_array_equal(
+                    np.concatenate([getattr(events, field) for events in batches]),
+                    getattr(expected, field),
+                )
+        for reader in (
+            evt3.decode_file_batches_with_triggers(str(path), 65536, threads=threads),
+            evt3.FileDecoderWithTriggers(str(path), 65536, threads=threads),
+        ):
+            batches = list(reader)
+            np.testing.assert_array_equal(
+                np.concatenate([events.t for events, _ in batches]), expected.t
+            )
+            np.testing.assert_array_equal(
+                np.concatenate([triggers.timestamp for _, triggers in batches]),
+                expected_triggers.timestamp,
+            )
+
+    def test_negative_threads_are_rejected(self):
+        import evt3
+
+        with pytest.raises((ValueError, OverflowError)):
+            evt3.Decoder(threads=-1)
+
+    def test_disabled_feature_rejects_explicit_worker_request(self):
+        import evt3
+
+        if evt3.PARALLEL_ENABLED:
+            pytest.skip("requires a build without the parallel feature")
+        with pytest.raises(ValueError, match="parallel"):
+            evt3.Decoder(threads=2)
 
 
 class TestPandasIntegration:
