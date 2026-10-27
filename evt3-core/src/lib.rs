@@ -1,6 +1,6 @@
 //! EVT 3.0 decoder library for Prophesee event cameras.
 //!
-//! This crate provides a high-performance decoder for the EVT 3.0 raw data format
+//! This crate provides a highly optimized decoder for the EVT 3.0 raw data format
 //! used by Prophesee event cameras. It supports decoding CD (Change Detection) events
 //! and external trigger events.
 //!
@@ -37,13 +37,34 @@
 //! decoder.finish_stream().unwrap();
 //! ```
 //!
+//! # Parallel decoding
+//!
+//! Decoding is serial by default. With the `parallel` Cargo feature, choose a
+//! [`Parallelism`] policy to split large files and chunks across threads:
+//!
+//! ```no_run
+//! use evt3::{Evt3Decoder, Parallelism};
+//!
+//! let mut decoder = Evt3Decoder::new().with_parallelism(Parallelism::Auto);
+//! let result = decoder.decode_file("recording.raw").unwrap();
+//! ```
+//!
+//! Without the feature, every policy decodes serially. Generic
+//! [`EventSink`] APIs such as [`Evt3Decoder::decode_bytes_into`] are always
+//! serial.
+//!
 //! # Features
 //!
 //! - Full EVT 3.0 specification support including vectorized events
 //! - File header parsing for sensor metadata
-//! - Multiple output formats (CSV, binary, Arrow IPC)
+//! - Output formats: CSV and packed binary
 //! - Customizable field ordering for output
 //! - Incremental byte-stream decoding for live camera pipelines
+//! - Optional parallel decoding behind the `parallel` feature
+
+// `as_chunks` needs Rust 1.88, above the 1.83 MSRV of the Python bindings.
+// `unknown_lints` keeps clippy releases older than this lint quiet.
+#![allow(unknown_lints, clippy::chunks_exact_to_as_chunks)]
 
 pub mod decoder;
 pub mod file_reader;
@@ -55,7 +76,7 @@ pub mod sink;
 pub mod types;
 
 // Re-export commonly used types
-pub use decoder::{DecodeError, Evt3Decoder};
+pub use decoder::{DecodeError, Evt3Decoder, Parallelism};
 pub use file_reader::{EventFileReader, DEFAULT_BATCH_BYTES};
 pub use output::{FieldOrder, OutputError};
 pub use sink::{ColumnarEventSink, EventColumns, EventSink, TriggerColumns};

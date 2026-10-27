@@ -34,6 +34,38 @@ impl CdEvent {
             timestamp,
         }
     }
+
+    /// Writes an event, including initialized row padding on little endian.
+    ///
+    /// # Safety
+    /// `out` must point to one exclusively writable, properly aligned slot
+    /// large enough for `CdEvent`. Its allocation must remain live for the write.
+    #[inline(always)]
+    pub(crate) unsafe fn write_reserved(out: *mut Self, x: u16, y: u16, p: u8, t: u64) {
+        #[cfg(target_endian = "little")]
+        {
+            const {
+                assert!(std::mem::size_of::<CdEvent>() == 16);
+                assert!(std::mem::align_of::<CdEvent>() == std::mem::align_of::<u64>());
+                assert!(std::mem::offset_of!(CdEvent, x) == 0);
+                assert!(std::mem::offset_of!(CdEvent, y) == 2);
+                assert!(std::mem::offset_of!(CdEvent, polarity) == 4);
+                assert!(std::mem::offset_of!(CdEvent, timestamp) == 8);
+            }
+            // SAFETY: the caller provides an aligned 16-byte slot. The layout
+            // assertions establish the field offsets; padding bytes become zero.
+            unsafe {
+                let xy = u32::from(x) | (u32::from(y) << 16);
+                out.cast::<[u64; 2]>()
+                    .write([u64::from(xy) | (u64::from(p) << 32), t]);
+            }
+        }
+        #[cfg(not(target_endian = "little"))]
+        // SAFETY: the same slot contract applies to the native struct write.
+        unsafe {
+            out.write(Self::new(x, y, p, t));
+        }
+    }
 }
 
 /// An external trigger event.

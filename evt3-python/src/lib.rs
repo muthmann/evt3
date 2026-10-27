@@ -5,7 +5,7 @@
 
 use evt3::{
     ColumnarDecodeResult, ColumnarEventSink, EventColumns, EventFileReader, Evt3Decoder,
-    TriggerColumns, DEFAULT_BATCH_BYTES,
+    Parallelism, TriggerColumns, DEFAULT_BATCH_BYTES,
 };
 use numpy::{IntoPyArray, PyArray1};
 use pyo3::exceptions::PyIOError;
@@ -210,10 +210,12 @@ pub struct DecodeResult {
 ///     >>> x = events.x  # numpy array of x coordinates
 ///     >>> y = events.y  # numpy array of y coordinates
 #[pyfunction]
-fn decode_file(py: Python<'_>, path: &str) -> PyResult<Py<Events>> {
+#[pyo3(signature = (path, *, threads=0))]
+fn decode_file(py: Python<'_>, path: &str, threads: usize) -> PyResult<Py<Events>> {
+    let mut decoder = configured_decoder(threads)?;
     let path = PathBuf::from(path);
     let result = py
-        .detach(move || Evt3Decoder::new().decode_file_columns(&path))
+        .detach(move || decoder.decode_file_columns(&path))
         .map_err(decode_error)?;
     let events = events_from_result(py, result);
 
@@ -233,14 +235,17 @@ fn decode_file(py: Python<'_>, path: &str) -> PyResult<Py<Events>> {
 ///     >>> events, triggers = evt3.decode_file_with_triggers("recording.raw")
 ///     >>> print(f"CD events: {len(events)}, Triggers: {len(triggers)}")
 #[pyfunction]
+#[pyo3(signature = (path, *, threads=0))]
 fn decode_file_with_triggers(
     py: Python<'_>,
     path: &str,
+    threads: usize,
 ) -> PyResult<(Py<Events>, Py<TriggerEvents>)> {
+    let mut decoder = configured_decoder(threads)?;
     let path = PathBuf::from(path);
 
     let result = py
-        .detach(move || Evt3Decoder::new().decode_file_columns(&path))
+        .detach(move || decoder.decode_file_columns(&path))
         .map_err(decode_error)?;
     let width = result.metadata.width;
     let height = result.metadata.height;
@@ -262,19 +267,20 @@ fn decode_file_with_triggers(
 /// Returns:
 ///     Events: Container with decoded events
 #[pyfunction]
-#[pyo3(signature = (data, sensor_width=1280, sensor_height=720))]
+#[pyo3(signature = (data, sensor_width=1280, sensor_height=720, *, threads=0))]
 fn decode_bytes(
     py: Python<'_>,
     data: &[u8],
     sensor_width: u32,
     sensor_height: u32,
+    threads: usize,
 ) -> PyResult<Py<Events>> {
-    let mut decoder = Evt3Decoder::new();
+    let mut decoder = configured_decoder(threads)?;
     decoder.metadata.width = sensor_width;
     decoder.metadata.height = sensor_height;
 
     let mut sink = ColumnarEventSink::default();
-    decoder.decode_bytes_into(data, &mut sink);
+    decoder.decode_bytes_columns(data, &mut sink);
 
     let events = Events::from_columns(py, sink.cd, sensor_width, sensor_height);
     Py::new(py, events)
@@ -292,17 +298,17 @@ pub struct PyDecoder {
 #[pymethods]
 impl PyDecoder {
     #[new]
-    #[pyo3(signature = (sensor_width=1280, sensor_height=720))]
-    fn new(sensor_width: u32, sensor_height: u32) -> Self {
-        let mut decoder = Evt3Decoder::new();
+    #[pyo3(signature = (sensor_width=1280, sensor_height=720, *, threads=0))]
+    fn new(sensor_width: u32, sensor_height: u32, threads: usize) -> PyResult<Self> {
+        let mut decoder = configured_decoder(threads)?;
         decoder.metadata.width = sensor_width;
         decoder.metadata.height = sensor_height;
-        Self {
+        Ok(Self {
             decoder,
             sensor_width,
             sensor_height,
             finished: false,
-        }
+        })
     }
 
     /// Decodes one byte chunk and returns only the events from that chunk.
@@ -313,7 +319,7 @@ impl PyDecoder {
             ));
         }
         let mut sink = ColumnarEventSink::default();
-        self.decoder.decode_bytes_into(data, &mut sink);
+        self.decoder.decode_bytes_columns(data, &mut sink);
         Py::new(
             py,
             Events::from_columns(py, sink.cd, self.sensor_width, self.sensor_height),
@@ -350,9 +356,12 @@ pub struct PyFileDecoder {
 #[pymethods]
 impl PyFileDecoder {
     #[new]
-    #[pyo3(signature = (path, batch_bytes=DEFAULT_BATCH_BYTES))]
-    fn new(path: &str, batch_bytes: usize) -> PyResult<Self> {
-        let reader = EventFileReader::open(path, batch_bytes).map_err(decode_error)?;
+    #[pyo3(signature = (path, batch_bytes=DEFAULT_BATCH_BYTES, *, threads=0))]
+    fn new(path: &str, batch_bytes: usize, threads: usize) -> PyResult<Self> {
+        let parallelism = configured_parallelism(threads)?;
+        let reader = EventFileReader::open(path, batch_bytes)
+            .map_err(decode_error)?
+            .with_parallelism(parallelism);
         let sensor_width = reader.metadata().width;
         let sensor_height = reader.metadata().height;
         Ok(Self {
@@ -369,7 +378,7 @@ impl PyFileDecoder {
     fn __next__(&mut self, py: Python<'_>) -> PyResult<Option<Py<Events>>> {
         let mut sink = ColumnarEventSink::default();
         let has_batch = py
-            .detach(|| self.reader.read_next_into(&mut sink))
+            .detach(|| self.reader.read_next_columns(&mut sink))
             .map_err(decode_error)?;
         if !has_batch {
             return Ok(None);
@@ -397,9 +406,9 @@ impl PyFileDecoder {
 }
 
 #[pyfunction]
-#[pyo3(signature = (path, batch_bytes=DEFAULT_BATCH_BYTES))]
-fn decode_file_batches(path: &str, batch_bytes: usize) -> PyResult<PyFileDecoder> {
-    PyFileDecoder::new(path, batch_bytes)
+#[pyo3(signature = (path, batch_bytes=DEFAULT_BATCH_BYTES, *, threads=0))]
+fn decode_file_batches(path: &str, batch_bytes: usize, threads: usize) -> PyResult<PyFileDecoder> {
+    PyFileDecoder::new(path, batch_bytes, threads)
 }
 
 /// Iterator that decodes bounded file batches including external triggers.
@@ -413,9 +422,12 @@ pub struct PyFileDecoderWithTriggers {
 #[pymethods]
 impl PyFileDecoderWithTriggers {
     #[new]
-    #[pyo3(signature = (path, batch_bytes=DEFAULT_BATCH_BYTES))]
-    fn new(path: &str, batch_bytes: usize) -> PyResult<Self> {
-        let reader = EventFileReader::open(path, batch_bytes).map_err(decode_error)?;
+    #[pyo3(signature = (path, batch_bytes=DEFAULT_BATCH_BYTES, *, threads=0))]
+    fn new(path: &str, batch_bytes: usize, threads: usize) -> PyResult<Self> {
+        let parallelism = configured_parallelism(threads)?;
+        let reader = EventFileReader::open(path, batch_bytes)
+            .map_err(decode_error)?
+            .with_parallelism(parallelism);
         let sensor_width = reader.metadata().width;
         let sensor_height = reader.metadata().height;
         Ok(Self {
@@ -432,7 +444,7 @@ impl PyFileDecoderWithTriggers {
     fn __next__(&mut self, py: Python<'_>) -> PyResult<Option<(Py<Events>, Py<TriggerEvents>)>> {
         let mut sink = ColumnarEventSink::default();
         let has_batch = py
-            .detach(|| self.reader.read_next_into(&mut sink))
+            .detach(|| self.reader.read_next_columns(&mut sink))
             .map_err(decode_error)?;
         if !has_batch {
             return Ok(None);
@@ -460,12 +472,33 @@ impl PyFileDecoderWithTriggers {
 }
 
 #[pyfunction]
-#[pyo3(signature = (path, batch_bytes=DEFAULT_BATCH_BYTES))]
+#[pyo3(signature = (path, batch_bytes=DEFAULT_BATCH_BYTES, *, threads=0))]
 fn decode_file_batches_with_triggers(
     path: &str,
     batch_bytes: usize,
+    threads: usize,
 ) -> PyResult<PyFileDecoderWithTriggers> {
-    PyFileDecoderWithTriggers::new(path, batch_bytes)
+    PyFileDecoderWithTriggers::new(path, batch_bytes, threads)
+}
+
+// Python defaults are deliberately separate from the Rust library's Off default.
+// A build without the Cargo feature accepts Auto as serial fallback, but rejects
+// an explicit request for multiple threads instead of silently ignoring it.
+fn configured_parallelism(threads: usize) -> PyResult<Parallelism> {
+    if !cfg!(feature = "parallel") && threads > 1 {
+        return Err(pyo3::exceptions::PyValueError::new_err(
+            "threads > 1 requires a build with the 'parallel' Cargo feature",
+        ));
+    }
+    Ok(match threads {
+        0 => Parallelism::Auto,
+        1 => Parallelism::Off,
+        n => Parallelism::Threads(n),
+    })
+}
+
+fn configured_decoder(threads: usize) -> PyResult<Evt3Decoder> {
+    Ok(Evt3Decoder::new().with_parallelism(configured_parallelism(threads)?))
 }
 
 fn events_from_result(py: Python<'_>, result: ColumnarDecodeResult) -> Events {
@@ -484,6 +517,7 @@ fn decode_error(error: evt3::DecodeError) -> PyErr {
 /// EVT 3.0 decoder module for Python.
 #[pymodule(gil_used = false)]
 fn _evt3(m: &Bound<'_, PyModule>) -> PyResult<()> {
+    m.add("PARALLEL_ENABLED", cfg!(feature = "parallel"))?;
     m.add_function(wrap_pyfunction!(decode_file, m)?)?;
     m.add_function(wrap_pyfunction!(decode_file_with_triggers, m)?)?;
     m.add_function(wrap_pyfunction!(decode_bytes, m)?)?;

@@ -1,0 +1,15 @@
+{
+  "status": "passed",
+  "csv_sha256": "462c94222668a106cbf0e5de07364ba58d8ddf60ca9632cf218e8bccbaaaa8eb",
+  "feature_on_threads": [
+    0,
+    1,
+    2,
+    4
+  ],
+  "feature_off_threads": [
+    0,
+    1
+  ],
+  "feature_off_explicit_multiple_threads": "rejected"
+}

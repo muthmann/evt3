@@ -1,4 +1,4 @@
-# evt3 — fast EVT3 decoder for Prophesee event cameras
+# evt3 — highly optimized EVT3 decoder for Prophesee event cameras
 
 [![CI](https://github.com/muthmann/evt3/actions/workflows/ci.yml/badge.svg)](https://github.com/muthmann/evt3/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/evt3)](https://pypi.org/project/evt3/)
@@ -13,8 +13,10 @@ encoding used by Prophesee event-based vision sensors, from `.raw` and
 optionally HDF5 files. It ships as a command-line tool, a Python package, and
 a Rust library.
 
-**1.62x faster than the optimized C++ reference** in a like-for-like full-CSV
-benchmark, with byte-identical checked output.
+**About 390 million events per second** from a `.raw` recording into NumPy,
+3.7x faster than evt3 0.4. CSV export is **1.73x faster than Prophesee's
+official C++ decoder sample**, with byte-identical output.
+[Measured](#performance) on an Apple M1 Pro with a 325 MiB recording.
 
 Built for event-based vision, neuromorphic engineering, and DVS data analysis
 when you need event streams as plain `x`, `y`, `p`, `t` arrays without
@@ -28,12 +30,12 @@ cargo add evt3           # Rust library
 
 ## Features
 
-- 🚀 **High Performance** - 55M events/second for Python decode-only and 1.62x faster than C++ for full CSV output
+- 🚀 **Highly Optimized** - fused byte decoding, grouped vector expansion, bounded output writers, and optional parallel decoding of large chunks
+- 🧵 **Explicit Parallelism** - serial by default in Rust; Python and CLI use up to four threads and accept `threads=1` / `--threads 1`
 - 📦 **Multiple Interfaces** - CLI tool, Python bindings, Rust library
 - 🐍 **NumPy-native Python** - stable `Events` arrays for analysis without clone-on-access surprises
-- 🔭 **AugurRS Ingress** - publish decoded or transformed NumPy event arrays into [AugurRS](https://github.com/muthmann/augur-rs) for interactive preview, 3D inspection, viewer tools, and plugin workflows
 - 🧪 **Optional HDF5 Input** - `.h5` and `.hdf5` support behind a cargo feature
-- ✅ **Validated** - Checked CSV output matches the C++ reference byte for byte
+- ✅ **Validated** - Checked CSV output matches Prophesee's C++ sample byte for byte, serial and parallel
 - 🔧 **Customizable** - Configurable output field order
 
 ## Quick Start
@@ -149,6 +151,9 @@ evt3 recording.raw events.csv --triggers triggers.csv
 
 # Quiet mode
 evt3 recording.raw events.csv --quiet
+
+# Decoder threads: 0 = Auto (default, up to 4), 1 = serial, n = cap
+evt3 recording.raw events.csv --threads 1
 ```
 
 ### Python
@@ -183,6 +188,10 @@ print(f"Event rate: {len(events) / ((t[-1] - t[0]) / 1e6):.0f} events/sec")
 import pandas as pd
 df = pd.DataFrame(events.to_dict())
 
+# Decoder threads: 0 = Auto (default, up to 4), 1 = serial, n = cap.
+# Use threads=1 when your application already decodes files in parallel.
+events = evt3.decode_file("recording.raw", threads=1)
+
 # Existing decode_file code stays unchanged and now uses the optimized
 # columnar decoder internally. Process bounded batches when the full recording
 # does not need to stay in memory:
@@ -200,36 +209,10 @@ for raw_chunk in camera_chunks:
 decoder.finish()
 ```
 
-### Python To AugurRS
+### Construct Python Events From Arrays
 
-`evt3` can publish decoded or transformed NumPy event arrays into a running
-[AugurRS](https://github.com/muthmann/augur-rs) session. This makes Python a
-lightweight analysis and filtering environment while AugurRS provides the
-interactive event-camera application: live-style preview, 3D raw-event
-inspection, viewer tools, exports, and plugins.
-
-```python
-import evt3
-
-events = evt3.decode_file("recording.raw")
-
-# Optional Python-side filtering or analysis.
-x = events.x
-y = events.y
-p = events.p
-t = events.t
-
-evt3.augur.publish_events(
-    x=x,
-    y=y,
-    p=p,
-    t=t,
-    geometry=events.sensor_size,
-    name="recording-analysis-window",
-)
-```
-
-You can also create an `Events` container from existing NumPy arrays:
+Use the same `Events` model for decoded data and arrays produced by your own
+analysis:
 
 ```python
 events = evt3.Events.from_arrays(
@@ -240,22 +223,11 @@ events = evt3.Events.from_arrays(
     geometry=(1280, 720),
     copy=False,
 )
-
-evt3.augur.publish_events(events, name="filtered-events")
 ```
 
-For repeated sends, reuse the loopback session:
-
-```python
-with evt3.augur.connect() as augur:
-    augur.publish_events(events, name="raw")
-    augur.publish_events(filtered_events, name="filtered")
-```
-
-The first ingress stage is deliberately copy-based and bounded: event chunks
-are packed into AugurRS' 14-byte `packed_xypt_v1` decoded-event transport and
-sent over loopback TCP. The connector validates dtype, shape, geometry, and
-timestamp ordering before sending so mistakes fail close to the Python code.
+The constructor validates shape, dtype, coordinate bounds, polarity, and
+nondecreasing microsecond timestamps. See [Python NumPy Events](docs/features/python-events.md)
+for the array contract and normalization options.
 
 ### Rust Library
 
@@ -295,6 +267,24 @@ decoder.finish_stream()?;
 
 This keeps `evt3` usable in incremental preview paths while preserving the
 existing file and word-based APIs.
+
+The library decodes serially by default. Enable the `parallel` feature and
+choose a policy to decode large files and chunks on several threads:
+
+```toml
+evt3 = { version = "0.5", features = ["parallel"] }
+```
+
+```rust
+use evt3::{Evt3Decoder, Parallelism};
+
+let mut decoder = Evt3Decoder::new().with_parallelism(Parallelism::Auto);
+let result = decoder.decode_file("recording.raw")?;
+```
+
+Only even byte chunks of at least 64 KiB use workers. Generic `EventSink` APIs
+such as `decode_bytes_into` always run serially. See
+[Parallel Decoding](docs/features/parallel-decoding.md) for all policies.
 
 Notes:
 - `decode_buffer` still expects 16-bit EVT3 words, not raw bytes.
@@ -344,28 +334,42 @@ Notes:
 - Real-data integration tests that skip still show as `ok`. Run with `-- --show-output` to see `[SKIP]` reasons.
 - Full plugin and dependency documentation: [docs/features/hdf5-file-support.md](docs/features/hdf5-file-support.md)
 
-## Benchmarks
+## Performance
 
-Tested on Apple Silicon macOS with `laser.raw` (325 MB, 116,300,447 events).
-Both CLI implementations decoded the complete file, formatted the same CSV,
-and wrote it to `/dev/null`. Each mean uses five alternating measured runs
-after one warm-up per implementation.
+Apple M1 Pro (8 cores), macOS, Rust 1.95. Input: `laser.raw`
+(325 MiB, 116,300,447 CD events), warm file cache, median of five runs.
+Baseline: evt3 0.4.
 
-| Decoder | Mean time | Events/sec | Speedup |
+| Workflow | evt3 0.4 | Current | Speedup | Events/s |
+|---|---:|---:|---:|---:|
+| Python `decode_file` (Auto) | 1.110 s | 0.301 s | 3.7x | 387 M |
+| Rust `decode_file`, rows (Auto) | 0.896 s | 0.293 s | 3.1x | 396 M |
+| Rust `decode_file_columns` (Auto) | 0.943 s | 0.277 s | 3.4x | 421 M |
+
+Auto uses up to four threads, so these gains include extra CPU cores. With
+one thread, decoding is about 1.4–1.8x faster than evt3 0.4, measured on
+recorded packet replay with 4–64 KiB chunks.
+
+Same work for all decoders: decode the complete file, format CSV, write it to
+`/dev/null`. The C++ program is Prophesee's
+[official standalone sample](https://github.com/prophesee-ai/openeb/blob/main/standalone_samples/metavision_evt3_raw_file_decoder/metavision_evt3_raw_file_decoder.cpp),
+built with `-O3 -DNDEBUG`. It is not the full Metavision SDK.
+
+| CSV export | Time | Events/s | vs. C++ |
 |---|---:|---:|---:|
-| **Rust CLI** | **7.414 s** | **15.69M/s** | **1.62x** |
-| C++ reference (`-O3 -DNDEBUG`) | 12.028 s | 9.67M/s | 1.00x |
+| **evt3 CLI (current)** | **6.66 s** | **17.5 M** | **1.73x** |
+| evt3 CLI 0.4 | 7.37 s | 15.8 M | 1.57x |
+| Prophesee C++ sample | 11.55 s | 10.1 M | 1.00x |
 
-An instrumented run measured 63.3 MB maximum RSS for Rust and 28.3 MB for
-C++. Rust is faster in this workload; the C++ reference uses less memory. The
-CSV outputs had the same SHA-256 hash on an 8-MiB input prefix. Python's
-2.108-second full-memory decode is reported separately because it does not
-format CSV and is not directly comparable with this table.
+The whole-file results come from the
+[25 October report](benchmarks/final-results-2026-10-25.md); the one-thread
+results come from the [parallelism checks](benchmarks/parallelism-controls-2026-10-25.md).
+Methods, raw samples, and all workloads: [benchmarks/README.md](benchmarks/README.md).
 
-Run benchmarks yourself:
 ```bash
-cargo bench
-python benchmarks/benchmark.py --csv-comparison-only --iterations 5
+cargo bench -p evt3
+evt3-python/.venv/bin/python benchmarks/benchmark.py --comparison-suite \
+  --rust-baseline-ref 8554807 --iterations 5
 ```
 
 ## Output Formats
@@ -411,9 +415,16 @@ evt3/
 ├── evt3-core/       # Rust decoder library      -> crate `evt3`
 ├── evt3-cli/        # Command-line tool         -> crate `evt3-cli`, binary `evt3`
 ├── evt3-python/     # Python bindings (PyO3)    -> PyPI package `evt3`
-├── benchmarks/      # Performance benchmarks
-└── test_data/       # Sample EVT3 files
+├── benchmarks/      # Benchmark suite and measured results
+├── docs/            # Feature documentation and ADRs
+└── test_data/       # Local recordings for benchmarks (not in git)
 ```
+
+## Related Projects
+
+- [AugurRS](https://github.com/muthmann/augur-rs) — an event camera workbench
+  to record, replay, and analyze event streams, with linked 2D and 3D views
+  and a plugin API.
 
 ## Contributing
 

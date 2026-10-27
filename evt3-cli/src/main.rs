@@ -5,7 +5,10 @@
 use anyhow::{Context, Result};
 use clap::Parser;
 use evt3::output::{BinaryWriter, CsvWriter, TriggerCsvWriter};
-use evt3::{ColumnarEventSink, EventFileReader, FieldOrder, SensorMetadata, DEFAULT_BATCH_BYTES};
+use evt3::{
+    ColumnarEventSink, EventFileReader, FieldOrder, Parallelism, SensorMetadata,
+    DEFAULT_BATCH_BYTES,
+};
 use indicatif::{ProgressBar, ProgressStyle};
 use std::fs::File;
 use std::path::{Path, PathBuf};
@@ -55,6 +58,10 @@ struct Args {
     /// If provided, external trigger events will be written to this file.
     #[arg(short, long, value_name = "PATH")]
     triggers: Option<PathBuf>,
+
+    /// Maximum total decoder threads: 0 = auto (up to 4), 1 = serial
+    #[arg(long, default_value_t = 0)]
+    threads: usize,
 
     /// Suppress progress output
     #[arg(short, long)]
@@ -112,6 +119,14 @@ impl StreamingOutput {
 
 fn main() -> Result<()> {
     let args = Args::parse();
+    if !cfg!(feature = "parallel") && args.threads > 1 {
+        anyhow::bail!("--threads > 1 requires a build with the 'parallel' Cargo feature");
+    }
+    let parallelism = match args.threads {
+        0 => Parallelism::Auto,
+        1 => Parallelism::Off,
+        n => Parallelism::Threads(n),
+    };
 
     // Parse field order
     let field_order = FieldOrder::from_str(&args.format)
@@ -141,7 +156,8 @@ fn main() -> Result<()> {
     ));
 
     let mut reader = EventFileReader::open(&args.input, DEFAULT_BATCH_BYTES)
-        .context("Failed to open EVT3 file")?;
+        .context("Failed to open EVT3 file")?
+        .with_parallelism(parallelism);
     let metadata = reader.metadata().clone();
     let mut output = StreamingOutput::open(&args.output, &metadata, field_order)?;
     let mut trigger_writer: Option<TriggerCsvWriter<File>> = None;
@@ -150,7 +166,7 @@ fn main() -> Result<()> {
     let mut trigger_count = 0_u64;
 
     while reader
-        .read_next_into(&mut batch)
+        .read_next_columns(&mut batch)
         .context("Failed to decode EVT3 file")?
     {
         output.write(&batch.cd).context("Failed to write output")?;
@@ -203,4 +219,25 @@ fn main() -> Result<()> {
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn thread_option_defaults_to_auto_and_accepts_serial_or_a_limit() {
+        assert_eq!(
+            Args::try_parse_from(["evt3", "in.raw", "out.csv"])
+                .unwrap()
+                .threads,
+            0
+        );
+        for threads in ["0", "1", "2", "4"] {
+            let args =
+                Args::try_parse_from(["evt3", "in.raw", "out.csv", "--threads", threads]).unwrap();
+            assert_eq!(args.threads.to_string(), threads);
+        }
+        assert!(Args::try_parse_from(["evt3", "in.raw", "out.csv", "--threads", "-1"]).is_err());
+    }
 }

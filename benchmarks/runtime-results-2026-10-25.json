@@ -1,0 +1,2651 @@
+{
+  "status": "complete",
+  "provenance": {
+    "rust_baseline_ref": "8554807",
+    "rust_baseline_commit": "85548072841ee92de409206883f4c130644ad4fe",
+    "rust_current_commit": "85548072841ee92de409206883f4c130644ad4fe",
+    "rust_current_diff_sha256": "e800f264e9ac80f368783c3c06e93b0e18abb1694955ef209d5015c03d4613ca",
+    "rustc": "rustc 1.95.0 (59807616e 2026-04-14)\nbinary: rustc\ncommit-hash: 59807616e1fa2540724bfbac14d7976d7e4a3860\ncommit-date: 2026-04-14\nhost: aarch64-apple-darwin\nrelease: 1.95.0\nLLVM version: 22.1.2",
+    "python": "3.13.5 (main, Jun 12 2025, 12:22:43) [Clang 20.1.4 ]",
+    "dependency_lock_sha256": "5afbad299e14fc70f767f937f5f1b8ae6dfb70c76fac3acb9597e8e183caf3d5",
+    "baseline_dependency_lock_sha256": "28c8304dcc87517b9908fbb1b9cfa844a1b0ca22261dbde793fc1c2ecf6cdefd",
+    "current_source_sha256": {
+      "Cargo.toml": "f78af503873702945993dd9b4b20a080f58bbdaf012a73ccacc76beb8b74b1f8",
+      "evt3-core/Cargo.toml": "6e9e807fe9167f30b1ee52f60e3b5ff1cc6d9f4fc8468c0ed2345ccdafff3533",
+      "evt3-core/src/decoder/parallel.rs": "6f22286aee072b278b7081555a9716865da69037efd9361bb4686ae32e46dccc",
+      "evt3-core/src/decoder.rs": "f67b0961cc9fef87758e05a1b7147819166c2582129f5c1c658858c447f2d5d9",
+      "evt3-core/src/file_reader.rs": "5c68fd5fe7fc7f49ce609e4bb980ce5e85d9158260ee9106dec63185b1e069b9",
+      "evt3-core/src/hdf5_decoder.rs": "2e8b74f816238e15ca4c738b98ce4cd6d97e3ba8d518fecadda0e155aa257534",
+      "evt3-core/src/lib.rs": "1ad9887618e912888b55f4cf0fabdf8ef9d5e4b26546bfd7022973c237b3420f",
+      "evt3-core/src/output.rs": "a48b94995297d07c3e77023e6b14bb172d8b90033e138b194d4171d253687aa2",
+      "evt3-core/src/parser.rs": "c13dcac06d7fd9873f71c79ed3c7f29bfc67a50356902af4dbe24f40b61b3f35",
+      "evt3-core/src/sink.rs": "5d77657c4af54a436527d2c3f627932c3c6393ae3ba4dbac67aec4e833216ecb",
+      "evt3-core/src/types.rs": "cf27a99eafd89fee1cc548cb7996ecb3917596b125d1f8e8b3c86778690a7105",
+      "evt3-cli/Cargo.toml": "3a70d11d53fc2158c19072a95a69d3b95e6e3a1e36155a6ad30a600c6c093ce0",
+      "evt3-cli/src/main.rs": "9ecc5baec90ac76d32af425baaafcec9b62c2aec04695671849a95a04806c738",
+      "evt3-python/Cargo.toml": "74c5f9c439a53e1afb0c3d4c929cf9f6e774b1e00b35c57529a2ae1fd8937e5c",
+      "evt3-python/src/lib.rs": "ccd453ce50a88654d0467be25c8b2b9be831cf2a21e395ce712eb485659c314b"
+    },
+    "rust_flags": {
+      "RUSTFLAGS": null,
+      "CARGO_ENCODED_RUSTFLAGS": null
+    },
+    "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+    "logical_cpu_count": 8,
+    "native_harness_flags": [
+      "-O",
+      "-C",
+      "lto=thin",
+      "-C",
+      "codegen-units=1"
+    ],
+    "cpp_source": "cpp_reference/metavision_evt3_raw_file_decoder.cpp",
+    "cpp_source_url": "https://github.com/prophesee-ai/openeb/blob/main/standalone_samples/metavision_evt3_raw_file_decoder/metavision_evt3_raw_file_decoder.cpp",
+    "cpp_source_sha256": "0038d3a0c69b80bea8dc350b3c295592aed92e6ace5030c16c35da6b6c1bb7d0",
+    "cpp_build": {
+      "compiler": "Apple clang version 21.0.0 (clang-2100.3.34.2)",
+      "flags": [
+        "-O3",
+        "-DNDEBUG",
+        "-std=c++17"
+      ]
+    },
+    "binary_sha256": {
+      "rust_before": "9109788ab77ad30e705675bb3dafe9e509854de404b939b6ca676358d95d842b",
+      "rust_current": "30135ec7f34532605f670ba58d664dc2ae0aed07c67291eb7b32d1e74c23c560",
+      "prophesee_cpp": "8178f616ccb559c022f17d34f62da3a8d9e409dc4f1933ab5baa50b84e7afe4d"
+    },
+    "native_worker_source_sha256": "defaf8a006bc514f5c21a0eb40b75a5a2fe443a9e26d9c6101db9255bc79864f",
+    "native_worker_binary_sha256": {
+      "rust_before": "2d55a2d7c5539bbd0aa5087ebcfd8cf98a25b4eba52a6f1b002ac70b07f57c5b",
+      "rust_current": "7a06e1a00495d5b76e5c3e3b6537c1d7bb55fa5a7c5408055cecc761a3474290"
+    }
+  },
+  "iterations": 5,
+  "method": {
+    "warmups_per_case_and_implementation": 1,
+    "order": "rotating",
+    "filesystem_cache": "warm",
+    "csv_output": "/dev/null",
+    "csv_timing": "process startup + file read + decode + CSV formatting",
+    "python_timing": "file read + decode + array/object creation; imports and checksums excluded",
+    "python_batches_timing": "bounded decode + checksum consumer",
+    "native_timing": "file read + decode + output allocation; checksums excluded",
+    "native_stream_timing": "recorded payload in memory, reusable outputs, decode and packet clocks; verification excluded",
+    "python_feed_timing": "recorded payload in memory, Decoder.feed and NumPy/object allocation; checksums excluded",
+    "multi_input_origin": "four identical recording prefixes",
+    "workers": 4
+  },
+  "inputs": {
+    "small": [
+      {
+        "path": "target/benchmark-comparison/comparison-bp099rr7/small.raw",
+        "bytes": 8388608,
+        "sha256": "c3b38bccd440dde55bc62a795e2554a92d405dde3a6cacacd8815dfd0452ab09"
+      }
+    ],
+    "large": [
+      {
+        "path": "test_data/laser.raw",
+        "bytes": 341306299,
+        "sha256": "e0eea3c9144bbbf78729e217ed3b63f9f56129ec9afae3840d59edbf4cddbbc2"
+      }
+    ],
+    "many": [
+      {
+        "path": "target/benchmark-comparison/comparison-bp099rr7/multi-0.raw",
+        "bytes": 67108864,
+        "sha256": "88cd9b0b47a08ad65dbb1bfd7b129d3e91607e89de1b3c48b1b103280f9d4461"
+      },
+      {
+        "path": "target/benchmark-comparison/comparison-bp099rr7/multi-1.raw",
+        "bytes": 67108864,
+        "sha256": "88cd9b0b47a08ad65dbb1bfd7b129d3e91607e89de1b3c48b1b103280f9d4461"
+      },
+      {
+        "path": "target/benchmark-comparison/comparison-bp099rr7/multi-2.raw",
+        "bytes": 67108864,
+        "sha256": "88cd9b0b47a08ad65dbb1bfd7b129d3e91607e89de1b3c48b1b103280f9d4461"
+      },
+      {
+        "path": "target/benchmark-comparison/comparison-bp099rr7/multi-3.raw",
+        "bytes": 67108864,
+        "sha256": "88cd9b0b47a08ad65dbb1bfd7b129d3e91607e89de1b3c48b1b103280f9d4461"
+      }
+    ]
+  },
+  "csv_verification": [
+    {
+      "file": "target/benchmark-comparison/comparison-bp099rr7/small.raw",
+      "prefix_bytes": 8388608,
+      "csv_sha256": "398d63a52eeb7291caa1346037f674ef0b6209772d3c512e2aa6c70b9aed12f4"
+    },
+    {
+      "file": "test_data/laser.raw",
+      "prefix_bytes": 8388608,
+      "csv_sha256": "398d63a52eeb7291caa1346037f674ef0b6209772d3c512e2aa6c70b9aed12f4"
+    },
+    {
+      "file": "target/benchmark-comparison/comparison-bp099rr7/multi-0.raw",
+      "prefix_bytes": 8388608,
+      "csv_sha256": "398d63a52eeb7291caa1346037f674ef0b6209772d3c512e2aa6c70b9aed12f4"
+    },
+    {
+      "file": "target/benchmark-comparison/comparison-bp099rr7/multi-1.raw",
+      "prefix_bytes": 8388608,
+      "csv_sha256": "398d63a52eeb7291caa1346037f674ef0b6209772d3c512e2aa6c70b9aed12f4"
+    },
+    {
+      "file": "target/benchmark-comparison/comparison-bp099rr7/multi-2.raw",
+      "prefix_bytes": 8388608,
+      "csv_sha256": "398d63a52eeb7291caa1346037f674ef0b6209772d3c512e2aa6c70b9aed12f4"
+    },
+    {
+      "file": "target/benchmark-comparison/comparison-bp099rr7/multi-3.raw",
+      "prefix_bytes": 8388608,
+      "csv_sha256": "398d63a52eeb7291caa1346037f674ef0b6209772d3c512e2aa6c70b9aed12f4"
+    }
+  ],
+  "cases": [
+    {
+      "name": "csv/small",
+      "implementations": {
+        "rust_before": {
+          "samples_seconds": [
+            0.18613087499397807,
+            0.17907924999599345,
+            0.17887783399783075,
+            0.18350283399922773,
+            0.18227233298239298
+          ],
+          "mean_seconds": 0.1819726251938846,
+          "median_seconds": 0.18227233298239298,
+          "min_seconds": 0.17887783399783075,
+          "max_seconds": 0.18613087499397807
+        },
+        "rust_current": {
+          "samples_seconds": [
+            0.15900995800620876,
+            0.15881062499829568,
+            0.16451766699901782,
+            0.1624017079884652,
+            0.15922916599083692
+          ],
+          "mean_seconds": 0.16079382479656487,
+          "median_seconds": 0.15922916599083692,
+          "min_seconds": 0.15881062499829568,
+          "max_seconds": 0.16451766699901782
+        },
+        "prophesee_cpp": {
+          "samples_seconds": [
+            0.27793129201745614,
+            0.27813354099635035,
+            0.27645787500659935,
+            0.2787686249939725,
+            0.27911604099790566
+          ],
+          "mean_seconds": 0.2780814748024568,
+          "median_seconds": 0.27813354099635035,
+          "min_seconds": 0.27645787500659935,
+          "max_seconds": 0.27911604099790566
+        }
+      },
+      "current_speedup_vs": {
+        "rust_before": 1.1447169985986243,
+        "prophesee_cpp": 1.7467499704944505
+      },
+      "current_time_reduction_vs": {
+        "rust_before": 0.1264216385148369,
+        "prophesee_cpp": 0.4275082198988496
+      },
+      "event_count": null,
+      "signature": null,
+      "workers": 1,
+      "input_bytes": 8388608
+    },
+    {
+      "name": "csv/large",
+      "implementations": {
+        "rust_before": {
+          "samples_seconds": [
+            7.142013208009303,
+            6.992345042002853,
+            6.943089542008238,
+            6.956339416996343,
+            6.9302423339977395
+          ],
+          "mean_seconds": 6.992805908602895,
+          "median_seconds": 6.956339416996343,
+          "min_seconds": 6.9302423339977395,
+          "max_seconds": 7.142013208009303
+        },
+        "rust_current": {
+          "samples_seconds": [
+            6.280695666995598,
+            6.2884560829843394,
+            6.856211625010474,
+            6.212108416017145,
+            6.234929874975933
+          ],
+          "mean_seconds": 6.374480333196698,
+          "median_seconds": 6.280695666995598,
+          "min_seconds": 6.212108416017145,
+          "max_seconds": 6.856211625010474
+        },
+        "prophesee_cpp": {
+          "samples_seconds": [
+            11.153080000018235,
+            11.165750749991275,
+            11.36719983399962,
+            11.142195291002281,
+            13.204147417010972
+          ],
+          "mean_seconds": 11.606474658404476,
+          "median_seconds": 11.165750749991275,
+          "min_seconds": 11.142195291002281,
+          "max_seconds": 13.204147417010972
+        }
+      },
+      "current_speedup_vs": {
+        "rust_before": 1.1075746678112717,
+        "prophesee_cpp": 1.7777888536561537
+      },
+      "current_time_reduction_vs": {
+        "rust_before": 0.09712633462794418,
+        "prophesee_cpp": 0.43750350445530894
+      },
+      "event_count": null,
+      "signature": null,
+      "workers": 1,
+      "input_bytes": 341306299
+    },
+    {
+      "name": "csv/many_sequential",
+      "implementations": {
+        "rust_before": {
+          "samples_seconds": [
+            5.530503125017276,
+            5.651473417005036,
+            5.57717162501649,
+            5.526099500013515,
+            5.674709832994267
+          ],
+          "mean_seconds": 5.591991500009317,
+          "median_seconds": 5.57717162501649,
+          "min_seconds": 5.526099500013515,
+          "max_seconds": 5.674709832994267
+        },
+        "rust_current": {
+          "samples_seconds": [
+            4.9132355409965385,
+            5.201528874982614,
+            5.191923832986504,
+            5.036870999989333,
+            4.993693083000835
+          ],
+          "mean_seconds": 5.067450466391165,
+          "median_seconds": 5.036870999989333,
+          "min_seconds": 4.9132355409965385,
+          "max_seconds": 5.201528874982614
+        },
+        "prophesee_cpp": {
+          "samples_seconds": [
+            8.712058375007473,
+            8.992744541988941,
+            8.78160275000846,
+            8.84714100000565,
+            8.910111916979076
+          ],
+          "mean_seconds": 8.84873171679792,
+          "median_seconds": 8.84714100000565,
+          "min_seconds": 8.712058375007473,
+          "max_seconds": 8.992744541988941
+        }
+      },
+      "current_speedup_vs": {
+        "rust_before": 1.1072691011995943,
+        "prophesee_cpp": 1.756475597652667
+      },
+      "current_time_reduction_vs": {
+        "rust_before": 0.0968771738355031,
+        "prophesee_cpp": 0.43067811398211964
+      },
+      "event_count": null,
+      "signature": null,
+      "workers": 1,
+      "input_bytes": 268435456
+    },
+    {
+      "name": "csv/many_parallel",
+      "implementations": {
+        "rust_before": {
+          "samples_seconds": [
+            1.5397629579820205,
+            1.4515829170122743,
+            1.4179460830055177,
+            1.5304767499910668,
+            1.4268360830028541
+          ],
+          "mean_seconds": 1.4733209581987468,
+          "median_seconds": 1.4515829170122743,
+          "min_seconds": 1.4179460830055177,
+          "max_seconds": 1.5397629579820205
+        },
+        "rust_current": {
+          "samples_seconds": [
+            1.3292898330255412,
+            1.4438594169914722,
+            1.3392738339898642,
+            1.369422540999949,
+            1.330205542006297
+          ],
+          "mean_seconds": 1.3624102334026247,
+          "median_seconds": 1.3392738339898642,
+          "min_seconds": 1.3292898330255412,
+          "max_seconds": 1.4438594169914722
+        },
+        "prophesee_cpp": {
+          "samples_seconds": [
+            2.4390336250071414,
+            2.346221209008945,
+            2.2691307080094703,
+            2.2824929589987732,
+            2.2745323330163956
+          ],
+          "mean_seconds": 2.322282166808145,
+          "median_seconds": 2.2824929589987732,
+          "min_seconds": 2.2691307080094703,
+          "max_seconds": 2.4390336250071414
+        }
+      },
+      "current_speedup_vs": {
+        "rust_before": 1.0838581925309683,
+        "prophesee_cpp": 1.7042765273767362
+      },
+      "current_time_reduction_vs": {
+        "rust_before": 0.0773700776622328,
+        "prophesee_cpp": 0.41324075997266463
+      },
+      "event_count": null,
+      "signature": null,
+      "workers": 4,
+      "input_bytes": 268435456
+    },
+    {
+      "name": "rust_rows/small",
+      "implementations": {
+        "rust_before": {
+          "samples_seconds": [
+            0.029873125,
+            0.021445417,
+            0.022049417,
+            0.021737,
+            0.021564167
+          ],
+          "mean_seconds": 0.0233338252,
+          "median_seconds": 0.021737,
+          "min_seconds": 0.021445417,
+          "max_seconds": 0.029873125
+        },
+        "rust_current": {
+          "samples_seconds": [
+            0.007609333,
+            0.007067917,
+            0.007288833,
+            0.007171333,
+            0.007472542
+          ],
+          "mean_seconds": 0.0073219916,
+          "median_seconds": 0.007288833,
+          "min_seconds": 0.007067917,
+          "max_seconds": 0.007609333
+        }
+      },
+      "current_speedup_vs": {
+        "rust_before": 2.9822332326725007
+      },
+      "current_time_reduction_vs": {
+        "rust_before": 0.6646808207204307
+      },
+      "event_count": 2858123,
+      "signature": [
+        {
+          "count": 2858123,
+          "sums": [
+            1765105916,
+            969372738,
+            335469,
+            18503473076332
+          ],
+          "ordered_hash": 13786500591136292180,
+          "trigger_count": 0,
+          "trigger_sums": [
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "workers": 1,
+      "input_bytes": 8388608,
+      "runtime_target": {
+        "baseline": "rust_before",
+        "maximum_time_ratio": 0.6,
+        "minimum_time_reduction": 0.4,
+        "passed": true
+      }
+    },
+    {
+      "name": "rust_rows/large",
+      "implementations": {
+        "rust_before": {
+          "samples_seconds": [
+            0.909812959,
+            0.882683875,
+            0.8883835,
+            0.897635875,
+            0.917493792
+          ],
+          "mean_seconds": 0.8992020002,
+          "median_seconds": 0.897635875,
+          "min_seconds": 0.882683875,
+          "max_seconds": 0.917493792
+        },
+        "rust_current": {
+          "samples_seconds": [
+            0.307366209,
+            0.325454583,
+            0.303333084,
+            0.343734583,
+            0.331733416
+          ],
+          "mean_seconds": 0.322324375,
+          "median_seconds": 0.325454583,
+          "min_seconds": 0.303333084,
+          "max_seconds": 0.343734583
+        }
+      },
+      "current_speedup_vs": {
+        "rust_before": 2.7580987390796703
+      },
+      "current_time_reduction_vs": {
+        "rust_before": 0.6374313994524784
+      },
+      "event_count": 116300447,
+      "signature": [
+        {
+          "count": 116300447,
+          "sums": [
+            71875563867,
+            39430950650,
+            13637152,
+            922843050073527
+          ],
+          "ordered_hash": 11762502548027038584,
+          "trigger_count": 0,
+          "trigger_sums": [
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "workers": 1,
+      "input_bytes": 341306299,
+      "runtime_target": {
+        "baseline": "rust_before",
+        "maximum_time_ratio": 0.6,
+        "minimum_time_reduction": 0.4,
+        "passed": true
+      }
+    },
+    {
+      "name": "rust_rows/many_sequential",
+      "implementations": {
+        "rust_before": {
+          "samples_seconds": [
+            0.699442042,
+            0.695885417,
+            0.692603334,
+            0.716587209,
+            0.699605375
+          ],
+          "mean_seconds": 0.7008246753999999,
+          "median_seconds": 0.699442042,
+          "min_seconds": 0.692603334,
+          "max_seconds": 0.716587209
+        },
+        "rust_current": {
+          "samples_seconds": [
+            0.229383541,
+            0.232594625,
+            0.232155583,
+            0.242060875,
+            0.235719667
+          ],
+          "mean_seconds": 0.2343828582,
+          "median_seconds": 0.232594625,
+          "min_seconds": 0.229383541,
+          "max_seconds": 0.242060875
+        }
+      },
+      "current_speedup_vs": {
+        "rust_before": 3.0071289996490678
+      },
+      "current_time_reduction_vs": {
+        "rust_before": 0.6674568998813486
+      },
+      "event_count": 91444056,
+      "signature": [
+        {
+          "count": 22861014,
+          "sums": [
+            14128113516,
+            7751766724,
+            2679550,
+            153894328154957
+          ],
+          "ordered_hash": 17822116442563971793,
+          "trigger_count": 0,
+          "trigger_sums": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "count": 22861014,
+          "sums": [
+            14128113516,
+            7751766724,
+            2679550,
+            153894328154957
+          ],
+          "ordered_hash": 17822116442563971793,
+          "trigger_count": 0,
+          "trigger_sums": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "count": 22861014,
+          "sums": [
+            14128113516,
+            7751766724,
+            2679550,
+            153894328154957
+          ],
+          "ordered_hash": 17822116442563971793,
+          "trigger_count": 0,
+          "trigger_sums": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "count": 22861014,
+          "sums": [
+            14128113516,
+            7751766724,
+            2679550,
+            153894328154957
+          ],
+          "ordered_hash": 17822116442563971793,
+          "trigger_count": 0,
+          "trigger_sums": [
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "workers": 1,
+      "input_bytes": 268435456,
+      "runtime_target": {
+        "baseline": "rust_before",
+        "maximum_time_ratio": 0.6,
+        "minimum_time_reduction": 0.4,
+        "passed": true
+      }
+    },
+    {
+      "name": "rust_rows/many_parallel",
+      "implementations": {
+        "rust_before": {
+          "samples_seconds": [
+            0.195420584,
+            0.201877166,
+            0.200387875,
+            0.197579917,
+            0.203641792
+          ],
+          "mean_seconds": 0.1997814668,
+          "median_seconds": 0.200387875,
+          "min_seconds": 0.195420584,
+          "max_seconds": 0.203641792
+        },
+        "rust_current": {
+          "samples_seconds": [
+            0.141078167,
+            0.164981834,
+            0.159922292,
+            0.132610583,
+            0.142901167
+          ],
+          "mean_seconds": 0.1482988086,
+          "median_seconds": 0.142901167,
+          "min_seconds": 0.132610583,
+          "max_seconds": 0.164981834
+        }
+      },
+      "current_speedup_vs": {
+        "rust_before": 1.4022829848548402
+      },
+      "current_time_reduction_vs": {
+        "rust_before": 0.28687717757374287
+      },
+      "event_count": 91444056,
+      "signature": [
+        {
+          "count": 22861014,
+          "sums": [
+            14128113516,
+            7751766724,
+            2679550,
+            153894328154957
+          ],
+          "ordered_hash": 17822116442563971793,
+          "trigger_count": 0,
+          "trigger_sums": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "count": 22861014,
+          "sums": [
+            14128113516,
+            7751766724,
+            2679550,
+            153894328154957
+          ],
+          "ordered_hash": 17822116442563971793,
+          "trigger_count": 0,
+          "trigger_sums": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "count": 22861014,
+          "sums": [
+            14128113516,
+            7751766724,
+            2679550,
+            153894328154957
+          ],
+          "ordered_hash": 17822116442563971793,
+          "trigger_count": 0,
+          "trigger_sums": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "count": 22861014,
+          "sums": [
+            14128113516,
+            7751766724,
+            2679550,
+            153894328154957
+          ],
+          "ordered_hash": 17822116442563971793,
+          "trigger_count": 0,
+          "trigger_sums": [
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "workers": 4,
+      "input_bytes": 268435456,
+      "runtime_target": {
+        "baseline": "rust_before",
+        "maximum_time_ratio": 0.6,
+        "minimum_time_reduction": 0.4,
+        "passed": false
+      }
+    },
+    {
+      "name": "rust_columns/small",
+      "implementations": {
+        "rust_before": {
+          "samples_seconds": [
+            0.022618208,
+            0.02232575,
+            0.022930209,
+            0.022785542,
+            0.022342291
+          ],
+          "mean_seconds": 0.0226004,
+          "median_seconds": 0.022618208,
+          "min_seconds": 0.02232575,
+          "max_seconds": 0.022930209
+        },
+        "rust_current": {
+          "samples_seconds": [
+            0.007114917,
+            0.006898917,
+            0.007635917,
+            0.006565208,
+            0.00677075
+          ],
+          "mean_seconds": 0.0069971418,
+          "median_seconds": 0.006898917,
+          "min_seconds": 0.006565208,
+          "max_seconds": 0.007635917
+        }
+      },
+      "current_speedup_vs": {
+        "rust_before": 3.2785157438479113
+      },
+      "current_time_reduction_vs": {
+        "rust_before": 0.6949839262243941
+      },
+      "event_count": 2858123,
+      "signature": [
+        {
+          "count": 2858123,
+          "sums": [
+            1765105916,
+            969372738,
+            335469,
+            18503473076332
+          ],
+          "ordered_hash": 13786500591136292180,
+          "trigger_count": 0,
+          "trigger_sums": [
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "workers": 1,
+      "input_bytes": 8388608,
+      "runtime_target": {
+        "baseline": "rust_before",
+        "maximum_time_ratio": 0.6,
+        "minimum_time_reduction": 0.4,
+        "passed": true
+      }
+    },
+    {
+      "name": "rust_columns/large",
+      "implementations": {
+        "rust_before": {
+          "samples_seconds": [
+            0.960013583,
+            0.93782675,
+            0.93449625,
+            0.962612208,
+            0.938385917
+          ],
+          "mean_seconds": 0.9466669416,
+          "median_seconds": 0.938385917,
+          "min_seconds": 0.93449625,
+          "max_seconds": 0.962612208
+        },
+        "rust_current": {
+          "samples_seconds": [
+            0.274880292,
+            0.273890125,
+            0.315272291,
+            0.318188542,
+            0.291861334
+          ],
+          "mean_seconds": 0.2948185168,
+          "median_seconds": 0.291861334,
+          "min_seconds": 0.273890125,
+          "max_seconds": 0.318188542
+        }
+      },
+      "current_speedup_vs": {
+        "rust_before": 3.215177235501843
+      },
+      "current_time_reduction_vs": {
+        "rust_before": 0.688975155410394
+      },
+      "event_count": 116300447,
+      "signature": [
+        {
+          "count": 116300447,
+          "sums": [
+            71875563867,
+            39430950650,
+            13637152,
+            922843050073527
+          ],
+          "ordered_hash": 11762502548027038584,
+          "trigger_count": 0,
+          "trigger_sums": [
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "workers": 1,
+      "input_bytes": 341306299,
+      "runtime_target": {
+        "baseline": "rust_before",
+        "maximum_time_ratio": 0.6,
+        "minimum_time_reduction": 0.4,
+        "passed": true
+      }
+    },
+    {
+      "name": "rust_columns/many_sequential",
+      "implementations": {
+        "rust_before": {
+          "samples_seconds": [
+            0.733679667,
+            0.743498041,
+            0.73604775,
+            0.729746167,
+            0.732571875
+          ],
+          "mean_seconds": 0.7351087,
+          "median_seconds": 0.733679667,
+          "min_seconds": 0.729746167,
+          "max_seconds": 0.743498041
+        },
+        "rust_current": {
+          "samples_seconds": [
+            0.229457,
+            0.222202333,
+            0.214286417,
+            0.2222205,
+            0.238482375
+          ],
+          "mean_seconds": 0.225329725,
+          "median_seconds": 0.2222205,
+          "min_seconds": 0.214286417,
+          "max_seconds": 0.238482375
+        }
+      },
+      "current_speedup_vs": {
+        "rust_before": 3.3015840887766883
+      },
+      "current_time_reduction_vs": {
+        "rust_before": 0.6971150898747751
+      },
+      "event_count": 91444056,
+      "signature": [
+        {
+          "count": 22861014,
+          "sums": [
+            14128113516,
+            7751766724,
+            2679550,
+            153894328154957
+          ],
+          "ordered_hash": 17822116442563971793,
+          "trigger_count": 0,
+          "trigger_sums": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "count": 22861014,
+          "sums": [
+            14128113516,
+            7751766724,
+            2679550,
+            153894328154957
+          ],
+          "ordered_hash": 17822116442563971793,
+          "trigger_count": 0,
+          "trigger_sums": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "count": 22861014,
+          "sums": [
+            14128113516,
+            7751766724,
+            2679550,
+            153894328154957
+          ],
+          "ordered_hash": 17822116442563971793,
+          "trigger_count": 0,
+          "trigger_sums": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "count": 22861014,
+          "sums": [
+            14128113516,
+            7751766724,
+            2679550,
+            153894328154957
+          ],
+          "ordered_hash": 17822116442563971793,
+          "trigger_count": 0,
+          "trigger_sums": [
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "workers": 1,
+      "input_bytes": 268435456,
+      "runtime_target": {
+        "baseline": "rust_before",
+        "maximum_time_ratio": 0.6,
+        "minimum_time_reduction": 0.4,
+        "passed": true
+      }
+    },
+    {
+      "name": "rust_columns/many_parallel",
+      "implementations": {
+        "rust_before": {
+          "samples_seconds": [
+            0.203176042,
+            0.241198291,
+            0.202906916,
+            0.195634417,
+            0.209826959
+          ],
+          "mean_seconds": 0.21054852500000001,
+          "median_seconds": 0.203176042,
+          "min_seconds": 0.195634417,
+          "max_seconds": 0.241198291
+        },
+        "rust_current": {
+          "samples_seconds": [
+            0.136016542,
+            0.124099667,
+            0.151737625,
+            0.122491291,
+            0.125820333
+          ],
+          "mean_seconds": 0.13203309159999999,
+          "median_seconds": 0.125820333,
+          "min_seconds": 0.122491291,
+          "max_seconds": 0.151737625
+        }
+      },
+      "current_speedup_vs": {
+        "rust_before": 1.614810874805108
+      },
+      "current_time_reduction_vs": {
+        "rust_before": 0.3807324339943584
+      },
+      "event_count": 91444056,
+      "signature": [
+        {
+          "count": 22861014,
+          "sums": [
+            14128113516,
+            7751766724,
+            2679550,
+            153894328154957
+          ],
+          "ordered_hash": 17822116442563971793,
+          "trigger_count": 0,
+          "trigger_sums": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "count": 22861014,
+          "sums": [
+            14128113516,
+            7751766724,
+            2679550,
+            153894328154957
+          ],
+          "ordered_hash": 17822116442563971793,
+          "trigger_count": 0,
+          "trigger_sums": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "count": 22861014,
+          "sums": [
+            14128113516,
+            7751766724,
+            2679550,
+            153894328154957
+          ],
+          "ordered_hash": 17822116442563971793,
+          "trigger_count": 0,
+          "trigger_sums": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "count": 22861014,
+          "sums": [
+            14128113516,
+            7751766724,
+            2679550,
+            153894328154957
+          ],
+          "ordered_hash": 17822116442563971793,
+          "trigger_count": 0,
+          "trigger_sums": [
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "workers": 4,
+      "input_bytes": 268435456,
+      "runtime_target": {
+        "baseline": "rust_before",
+        "maximum_time_ratio": 0.6,
+        "minimum_time_reduction": 0.4,
+        "passed": false
+      }
+    },
+    {
+      "name": "rust_stream_rows/4095",
+      "implementations": {
+        "rust_before": {
+          "samples_seconds": [
+            0.017761917,
+            0.017810625,
+            0.017779458,
+            0.0178035,
+            0.018215334
+          ],
+          "mean_seconds": 0.0178741668,
+          "median_seconds": 0.0178035,
+          "min_seconds": 0.017761917,
+          "max_seconds": 0.018215334,
+          "packet_latency_samples": [
+            {
+              "count": 2049,
+              "p50": 8.583e-06,
+              "p95": 9.167e-06,
+              "p99": 9.5e-06,
+              "max": 3.2792e-05
+            },
+            {
+              "count": 2049,
+              "p50": 8.625e-06,
+              "p95": 9.208e-06,
+              "p99": 9.5e-06,
+              "max": 2.675e-05
+            },
+            {
+              "count": 2049,
+              "p50": 8.583e-06,
+              "p95": 9.208e-06,
+              "p99": 9.5e-06,
+              "max": 5.85e-05
+            },
+            {
+              "count": 2049,
+              "p50": 8.542e-06,
+              "p95": 9.167e-06,
+              "p99": 9.5e-06,
+              "max": 6.7792e-05
+            },
+            {
+              "count": 2049,
+              "p50": 8.666e-06,
+              "p95": 9.333e-06,
+              "p99": 1.1375e-05,
+              "max": 6.75e-05
+            }
+          ]
+        },
+        "rust_current": {
+          "samples_seconds": [
+            0.013287875,
+            0.012409625,
+            0.011994416,
+            0.012198208,
+            0.01243075
+          ],
+          "mean_seconds": 0.0124641748,
+          "median_seconds": 0.012409625,
+          "min_seconds": 0.011994416,
+          "max_seconds": 0.013287875,
+          "packet_latency_samples": [
+            {
+              "count": 2049,
+              "p50": 5.834e-06,
+              "p95": 6.334e-06,
+              "p99": 9.209e-06,
+              "max": 0.000463
+            },
+            {
+              "count": 2049,
+              "p50": 5.916e-06,
+              "p95": 6.333e-06,
+              "p99": 6.709e-06,
+              "max": 3.3e-05
+            },
+            {
+              "count": 2049,
+              "p50": 5.75e-06,
+              "p95": 6.125e-06,
+              "p99": 6.458e-06,
+              "max": 2.3917e-05
+            },
+            {
+              "count": 2049,
+              "p50": 5.791e-06,
+              "p95": 6.166e-06,
+              "p99": 6.791e-06,
+              "max": 4.6e-05
+            },
+            {
+              "count": 2049,
+              "p50": 5.833e-06,
+              "p95": 6.292e-06,
+              "p99": 7.084e-06,
+              "max": 4.9791e-05
+            }
+          ]
+        }
+      },
+      "current_speedup_vs": {
+        "rust_before": 1.4346525378486457
+      },
+      "current_time_reduction_vs": {
+        "rust_before": 0.302967113208077
+      },
+      "event_count": 2858173,
+      "signature": [
+        {
+          "count": 2858173,
+          "sums": [
+            1765138567,
+            969383628,
+            335469,
+            18503798624706
+          ],
+          "ordered_hash": 824152520016067314,
+          "trigger_count": 0,
+          "trigger_sums": [
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "runtime_target": {
+        "baseline": "rust_before",
+        "maximum_time_ratio": 0.6,
+        "minimum_time_reduction": 0.4,
+        "passed": false
+      }
+    },
+    {
+      "name": "rust_stream_columns/4095",
+      "implementations": {
+        "rust_before": {
+          "samples_seconds": [
+            0.019939667,
+            0.019723,
+            0.019524625,
+            0.019506292,
+            0.019232375
+          ],
+          "mean_seconds": 0.019585191800000002,
+          "median_seconds": 0.019524625,
+          "min_seconds": 0.019232375,
+          "max_seconds": 0.019939667,
+          "packet_latency_samples": [
+            {
+              "count": 2049,
+              "p50": 9.375e-06,
+              "p95": 1.0042e-05,
+              "p99": 2.0958e-05,
+              "max": 7.4083e-05
+            },
+            {
+              "count": 2049,
+              "p50": 9.334e-06,
+              "p95": 9.958e-06,
+              "p99": 1.7291e-05,
+              "max": 6.2292e-05
+            },
+            {
+              "count": 2049,
+              "p50": 9.333e-06,
+              "p95": 9.958e-06,
+              "p99": 1.1666e-05,
+              "max": 5.2e-05
+            },
+            {
+              "count": 2049,
+              "p50": 9.333e-06,
+              "p95": 9.917e-06,
+              "p99": 1.0459e-05,
+              "max": 6.0958e-05
+            },
+            {
+              "count": 2049,
+              "p50": 9.292e-06,
+              "p95": 9.834e-06,
+              "p99": 1.0584e-05,
+              "max": 3.5834e-05
+            }
+          ]
+        },
+        "rust_current": {
+          "samples_seconds": [
+            0.012224,
+            0.012451167,
+            0.01232525,
+            0.01227725,
+            0.012362917
+          ],
+          "mean_seconds": 0.0123281168,
+          "median_seconds": 0.01232525,
+          "min_seconds": 0.012224,
+          "max_seconds": 0.012451167,
+          "packet_latency_samples": [
+            {
+              "count": 2049,
+              "p50": 5.875e-06,
+              "p95": 6.25e-06,
+              "p99": 6.541e-06,
+              "max": 3.1125e-05
+            },
+            {
+              "count": 2049,
+              "p50": 5.917e-06,
+              "p95": 6.417e-06,
+              "p99": 6.875e-06,
+              "max": 5.0667e-05
+            },
+            {
+              "count": 2049,
+              "p50": 5.875e-06,
+              "p95": 6.25e-06,
+              "p99": 6.584e-06,
+              "max": 3.7917e-05
+            },
+            {
+              "count": 2049,
+              "p50": 5.875e-06,
+              "p95": 6.25e-06,
+              "p99": 6.833e-06,
+              "max": 4.475e-05
+            },
+            {
+              "count": 2049,
+              "p50": 5.917e-06,
+              "p95": 6.458e-06,
+              "p99": 6.75e-06,
+              "max": 2.8417e-05
+            }
+          ]
+        }
+      },
+      "current_speedup_vs": {
+        "rust_before": 1.584115940853127
+      },
+      "current_time_reduction_vs": {
+        "rust_before": 0.36873307425878865
+      },
+      "event_count": 2858173,
+      "signature": [
+        {
+          "count": 2858173,
+          "sums": [
+            1765138567,
+            969383628,
+            335469,
+            18503798624706
+          ],
+          "ordered_hash": 824152520016067314,
+          "trigger_count": 0,
+          "trigger_sums": [
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "runtime_target": {
+        "baseline": "rust_before",
+        "maximum_time_ratio": 0.6,
+        "minimum_time_reduction": 0.4,
+        "passed": false
+      }
+    },
+    {
+      "name": "python_feed/4095",
+      "implementations": {
+        "rust_before": {
+          "samples_seconds": [
+            0.031539500021608546,
+            0.03239924999070354,
+            0.03193237498635426,
+            0.031285083008697256,
+            0.031774292001500726
+          ],
+          "mean_seconds": 0.031786100001772864,
+          "median_seconds": 0.031774292001500726,
+          "min_seconds": 0.031285083008697256,
+          "max_seconds": 0.03239924999070354,
+          "packet_latency_samples": [
+            {
+              "count": 2049,
+              "p50": 1.4458986697718501e-05,
+              "p95": 1.77919864654541e-05,
+              "p99": 3.262498648837209e-05,
+              "max": 0.0001812080154195428
+            },
+            {
+              "count": 2049,
+              "p50": 1.4500023098662496e-05,
+              "p95": 1.8542021280154586e-05,
+              "p99": 4.7416979214176536e-05,
+              "max": 0.00024429199402220547
+            },
+            {
+              "count": 2049,
+              "p50": 1.4458986697718501e-05,
+              "p95": 1.7834012396633625e-05,
+              "p99": 3.891700180247426e-05,
+              "max": 0.00017058398225344718
+            },
+            {
+              "count": 2049,
+              "p50": 1.4457997167482972e-05,
+              "p95": 1.8000020645558834e-05,
+              "p99": 3.212501178495586e-05,
+              "max": 0.00015729101141914725
+            },
+            {
+              "count": 2049,
+              "p50": 1.4457997167482972e-05,
+              "p95": 1.850002445280552e-05,
+              "p99": 3.837500116787851e-05,
+              "max": 0.000165749981533736
+            }
+          ]
+        },
+        "rust_current": {
+          "samples_seconds": [
+            0.021138665993930772,
+            0.01985854099621065,
+            0.0196412910008803,
+            0.019546458002878353,
+            0.020458790997508913
+          ],
+          "mean_seconds": 0.020128749398281798,
+          "median_seconds": 0.01985854099621065,
+          "min_seconds": 0.019546458002878353,
+          "max_seconds": 0.021138665993930772,
+          "packet_latency_samples": [
+            {
+              "count": 2049,
+              "p50": 8.917006198316813e-06,
+              "p95": 1.3082986697554588e-05,
+              "p99": 4.31249791290611e-05,
+              "max": 0.00014787499094381928
+            },
+            {
+              "count": 2049,
+              "p50": 8.915987564250827e-06,
+              "p95": 1.1833006283268332e-05,
+              "p99": 1.966700074262917e-05,
+              "max": 0.00029866601107642055
+            },
+            {
+              "count": 2049,
+              "p50": 8.625007467344403e-06,
+              "p95": 1.2042000889778137e-05,
+              "p99": 2.549999044276774e-05,
+              "max": 0.0001589170133229345
+            },
+            {
+              "count": 2049,
+              "p50": 8.708011591807008e-06,
+              "p95": 1.1750002158805728e-05,
+              "p99": 2.2499996703118086e-05,
+              "max": 0.0001423330104444176
+            },
+            {
+              "count": 2049,
+              "p50": 8.832983439788222e-06,
+              "p95": 1.2250005966052413e-05,
+              "p99": 3.158298204652965e-05,
+              "max": 0.00016299998969770968
+            }
+          ]
+        }
+      },
+      "current_speedup_vs": {
+        "rust_before": 1.6000315434836732
+      },
+      "current_time_reduction_vs": {
+        "rust_before": 0.37501232143039676
+      },
+      "event_count": 2858173,
+      "signature": [
+        {
+          "count": 2858173,
+          "sums": [
+            1765138567,
+            969383628,
+            335469,
+            18503798624706
+          ],
+          "first_timestamp": 6437104,
+          "last_timestamp": 6510968
+        }
+      ],
+      "runtime_target": {
+        "baseline": "rust_before",
+        "maximum_time_ratio": 0.6,
+        "minimum_time_reduction": 0.4,
+        "passed": false
+      }
+    },
+    {
+      "name": "rust_stream_rows/8192",
+      "implementations": {
+        "rust_before": {
+          "samples_seconds": [
+            0.018045375,
+            0.017800084,
+            0.018493125,
+            0.0176165,
+            0.017944292
+          ],
+          "mean_seconds": 0.0179798752,
+          "median_seconds": 0.017944292,
+          "min_seconds": 0.0176165,
+          "max_seconds": 0.018493125,
+          "packet_latency_samples": [
+            {
+              "count": 1024,
+              "p50": 1.7041e-05,
+              "p95": 1.85e-05,
+              "p99": 3.5625e-05,
+              "max": 6.75e-05
+            },
+            {
+              "count": 1024,
+              "p50": 1.7042e-05,
+              "p95": 1.8625e-05,
+              "p99": 2.425e-05,
+              "max": 4.3375e-05
+            },
+            {
+              "count": 1024,
+              "p50": 1.7208e-05,
+              "p95": 1.8792e-05,
+              "p99": 4.55e-05,
+              "max": 9.3291e-05
+            },
+            {
+              "count": 1024,
+              "p50": 1.7042e-05,
+              "p95": 1.8e-05,
+              "p99": 1.9375e-05,
+              "max": 3.9625e-05
+            },
+            {
+              "count": 1024,
+              "p50": 1.7166e-05,
+              "p95": 1.8417e-05,
+              "p99": 2.3667e-05,
+              "max": 6.1083e-05
+            }
+          ]
+        },
+        "rust_current": {
+          "samples_seconds": [
+            0.012586916,
+            0.012527416,
+            0.012321167,
+            0.012205833,
+            0.012371166
+          ],
+          "mean_seconds": 0.0124024996,
+          "median_seconds": 0.012371166,
+          "min_seconds": 0.012205833,
+          "max_seconds": 0.012586916,
+          "packet_latency_samples": [
+            {
+              "count": 1024,
+              "p50": 1.1792e-05,
+              "p95": 1.3542e-05,
+              "p99": 2.8625e-05,
+              "max": 7.1291e-05
+            },
+            {
+              "count": 1024,
+              "p50": 1.1875e-05,
+              "p95": 1.2958e-05,
+              "p99": 2.775e-05,
+              "max": 4.5e-05
+            },
+            {
+              "count": 1024,
+              "p50": 1.1667e-05,
+              "p95": 1.2667e-05,
+              "p99": 1.8291e-05,
+              "max": 4.7333e-05
+            },
+            {
+              "count": 1024,
+              "p50": 1.175e-05,
+              "p95": 1.2291e-05,
+              "p99": 1.3e-05,
+              "max": 3.9417e-05
+            },
+            {
+              "count": 1024,
+              "p50": 1.175e-05,
+              "p95": 1.3125e-05,
+              "p99": 1.725e-05,
+              "max": 5.9333e-05
+            }
+          ]
+        }
+      },
+      "current_speedup_vs": {
+        "rust_before": 1.450493187141778
+      },
+      "current_time_reduction_vs": {
+        "rust_before": 0.3105793195964489
+      },
+      "event_count": 2858173,
+      "signature": [
+        {
+          "count": 2858173,
+          "sums": [
+            1765138567,
+            969383628,
+            335469,
+            18503798624706
+          ],
+          "ordered_hash": 824152520016067314,
+          "trigger_count": 0,
+          "trigger_sums": [
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "runtime_target": {
+        "baseline": "rust_before",
+        "maximum_time_ratio": 0.6,
+        "minimum_time_reduction": 0.4,
+        "passed": false
+      }
+    },
+    {
+      "name": "rust_stream_columns/8192",
+      "implementations": {
+        "rust_before": {
+          "samples_seconds": [
+            0.019588084,
+            0.019601708,
+            0.019161417,
+            0.019840125,
+            0.01924925
+          ],
+          "mean_seconds": 0.0194881168,
+          "median_seconds": 0.019588084,
+          "min_seconds": 0.019161417,
+          "max_seconds": 0.019840125,
+          "packet_latency_samples": [
+            {
+              "count": 1024,
+              "p50": 1.8667e-05,
+              "p95": 2.0125e-05,
+              "p99": 2.3541e-05,
+              "max": 6.1833e-05
+            },
+            {
+              "count": 1024,
+              "p50": 1.8667e-05,
+              "p95": 1.975e-05,
+              "p99": 3.5917e-05,
+              "max": 6.6459e-05
+            },
+            {
+              "count": 1024,
+              "p50": 1.8458e-05,
+              "p95": 1.9417e-05,
+              "p99": 2.1625e-05,
+              "max": 7.0875e-05
+            },
+            {
+              "count": 1024,
+              "p50": 1.8666e-05,
+              "p95": 1.9958e-05,
+              "p99": 4.1584e-05,
+              "max": 7.225e-05
+            },
+            {
+              "count": 1024,
+              "p50": 1.8458e-05,
+              "p95": 1.9541e-05,
+              "p99": 2.1375e-05,
+              "max": 7.8583e-05
+            }
+          ]
+        },
+        "rust_current": {
+          "samples_seconds": [
+            0.012454334,
+            0.012408583,
+            0.012904709,
+            0.012391834,
+            0.013170875
+          ],
+          "mean_seconds": 0.012666067,
+          "median_seconds": 0.012454334,
+          "min_seconds": 0.012391834,
+          "max_seconds": 0.013170875,
+          "packet_latency_samples": [
+            {
+              "count": 1024,
+              "p50": 1.1917e-05,
+              "p95": 1.275e-05,
+              "p99": 1.425e-05,
+              "max": 5.0167e-05
+            },
+            {
+              "count": 1024,
+              "p50": 1.2083e-05,
+              "p95": 1.2791e-05,
+              "p99": 1.3041e-05,
+              "max": 1.5166e-05
+            },
+            {
+              "count": 1024,
+              "p50": 1.2083e-05,
+              "p95": 1.2875e-05,
+              "p99": 2.7833e-05,
+              "max": 7.55e-05
+            },
+            {
+              "count": 1024,
+              "p50": 1.1917e-05,
+              "p95": 1.2583e-05,
+              "p99": 1.3833e-05,
+              "max": 4.6125e-05
+            },
+            {
+              "count": 1024,
+              "p50": 1.2083e-05,
+              "p95": 1.2875e-05,
+              "p99": 4.2459e-05,
+              "max": 9.5959e-05
+            }
+          ]
+        }
+      },
+      "current_speedup_vs": {
+        "rust_before": 1.5727925716461435
+      },
+      "current_time_reduction_vs": {
+        "rust_before": 0.364188248324849
+      },
+      "event_count": 2858173,
+      "signature": [
+        {
+          "count": 2858173,
+          "sums": [
+            1765138567,
+            969383628,
+            335469,
+            18503798624706
+          ],
+          "ordered_hash": 824152520016067314,
+          "trigger_count": 0,
+          "trigger_sums": [
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "runtime_target": {
+        "baseline": "rust_before",
+        "maximum_time_ratio": 0.6,
+        "minimum_time_reduction": 0.4,
+        "passed": false
+      }
+    },
+    {
+      "name": "python_feed/8192",
+      "implementations": {
+        "rust_before": {
+          "samples_seconds": [
+            0.028058958996552974,
+            0.027962041000137106,
+            0.028220542008057237,
+            0.029132833995390683,
+            0.0284267500101123
+          ],
+          "mean_seconds": 0.02836022520205006,
+          "median_seconds": 0.028220542008057237,
+          "min_seconds": 0.027962041000137106,
+          "max_seconds": 0.029132833995390683,
+          "packet_latency_samples": [
+            {
+              "count": 1024,
+              "p50": 2.629202208481729e-05,
+              "p95": 3.0291004804894328e-05,
+              "p99": 4.687500768341124e-05,
+              "max": 0.00017012498574331403
+            },
+            {
+              "count": 1024,
+              "p50": 2.6250025257468224e-05,
+              "p95": 3.058297443203628e-05,
+              "p99": 4.570800228975713e-05,
+              "max": 0.00016850000247359276
+            },
+            {
+              "count": 1024,
+              "p50": 2.62079993262887e-05,
+              "p95": 3.037499845959246e-05,
+              "p99": 5.82499778829515e-05,
+              "max": 0.00019962500664405525
+            },
+            {
+              "count": 1024,
+              "p50": 2.6458001229912043e-05,
+              "p95": 3.479098086245358e-05,
+              "p99": 7.766697672195733e-05,
+              "max": 0.0001972090103663504
+            },
+            {
+              "count": 1024,
+              "p50": 2.62079993262887e-05,
+              "p95": 3.195801400579512e-05,
+              "p99": 5.67499955650419e-05,
+              "max": 0.00017504199058748782
+            }
+          ]
+        },
+        "rust_current": {
+          "samples_seconds": [
+            0.019256833009421825,
+            0.019491124985506758,
+            0.019686791027197614,
+            0.02012304199161008,
+            0.020681209018221125
+          ],
+          "mean_seconds": 0.01984780000639148,
+          "median_seconds": 0.019686791027197614,
+          "min_seconds": 0.019256833009421825,
+          "max_seconds": 0.020681209018221125,
+          "packet_latency_samples": [
+            {
+              "count": 1024,
+              "p50": 1.754099503159523e-05,
+              "p95": 2.3458997020497918e-05,
+              "p99": 3.083300543949008e-05,
+              "max": 0.00013591599417850375
+            },
+            {
+              "count": 1024,
+              "p50": 1.7749989638105035e-05,
+              "p95": 2.4083012249320745e-05,
+              "p99": 3.0499999411404133e-05,
+              "max": 0.00014320798800326884
+            },
+            {
+              "count": 1024,
+              "p50": 1.7709011444821954e-05,
+              "p95": 2.429101732559502e-05,
+              "p99": 3.937497967854142e-05,
+              "max": 0.00015475001418963075
+            },
+            {
+              "count": 1024,
+              "p50": 1.8041988369077444e-05,
+              "p95": 2.5374989490956068e-05,
+              "p99": 5.695901927538216e-05,
+              "max": 0.00018079200526699424
+            },
+            {
+              "count": 1024,
+              "p50": 1.8291000742465258e-05,
+              "p95": 2.750000567175448e-05,
+              "p99": 5.312502617016435e-05,
+              "max": 0.0001720830041449517
+            }
+          ]
+        }
+      },
+      "current_speedup_vs": {
+        "rust_before": 1.4334759773225667
+      },
+      "current_time_reduction_vs": {
+        "rust_before": 0.30239500639013783
+      },
+      "event_count": 2858173,
+      "signature": [
+        {
+          "count": 2858173,
+          "sums": [
+            1765138567,
+            969383628,
+            335469,
+            18503798624706
+          ],
+          "first_timestamp": 6437104,
+          "last_timestamp": 6510968
+        }
+      ],
+      "runtime_target": {
+        "baseline": "rust_before",
+        "maximum_time_ratio": 0.6,
+        "minimum_time_reduction": 0.4,
+        "passed": false
+      }
+    },
+    {
+      "name": "rust_stream_rows/65536",
+      "implementations": {
+        "rust_before": {
+          "samples_seconds": [
+            0.017568042,
+            0.017869125,
+            0.017810417,
+            0.01775975,
+            0.01831275
+          ],
+          "mean_seconds": 0.0178640168,
+          "median_seconds": 0.017810417,
+          "min_seconds": 0.017568042,
+          "max_seconds": 0.01831275,
+          "packet_latency_samples": [
+            {
+              "count": 128,
+              "p50": 0.000135666,
+              "p95": 0.000140667,
+              "p99": 0.000187584,
+              "max": 0.000191917
+            },
+            {
+              "count": 128,
+              "p50": 0.000137708,
+              "p95": 0.000150958,
+              "p99": 0.000169334,
+              "max": 0.000227458
+            },
+            {
+              "count": 128,
+              "p50": 0.000137625,
+              "p95": 0.000154667,
+              "p99": 0.000174125,
+              "max": 0.000179292
+            },
+            {
+              "count": 128,
+              "p50": 0.000136667,
+              "p95": 0.00014925,
+              "p99": 0.000179041,
+              "max": 0.000193083
+            },
+            {
+              "count": 128,
+              "p50": 0.00013825,
+              "p95": 0.000172209,
+              "p99": 0.000212291,
+              "max": 0.000255417
+            }
+          ]
+        },
+        "rust_current": {
+          "samples_seconds": [
+            0.010427292,
+            0.009487833,
+            0.01048975,
+            0.01133,
+            0.01033625
+          ],
+          "mean_seconds": 0.010414225,
+          "median_seconds": 0.010427292,
+          "min_seconds": 0.009487833,
+          "max_seconds": 0.01133,
+          "packet_latency_samples": [
+            {
+              "count": 128,
+              "p50": 7.8667e-05,
+              "p95": 0.000111,
+              "p99": 0.000117584,
+              "max": 0.000155083
+            },
+            {
+              "count": 128,
+              "p50": 7.2458e-05,
+              "p95": 9.5375e-05,
+              "p99": 0.000108333,
+              "max": 0.000109
+            },
+            {
+              "count": 128,
+              "p50": 7.9083e-05,
+              "p95": 0.000112375,
+              "p99": 0.00016225,
+              "max": 0.000194375
+            },
+            {
+              "count": 128,
+              "p50": 8.0042e-05,
+              "p95": 0.000131292,
+              "p99": 0.000203542,
+              "max": 0.000203625
+            },
+            {
+              "count": 128,
+              "p50": 7.7417e-05,
+              "p95": 0.000113666,
+              "p99": 0.000128958,
+              "max": 0.000131083
+            }
+          ]
+        }
+      },
+      "current_speedup_vs": {
+        "rust_before": 1.7080577584285546
+      },
+      "current_time_reduction_vs": {
+        "rust_before": 0.41453970448867083
+      },
+      "event_count": 2858173,
+      "signature": [
+        {
+          "count": 2858173,
+          "sums": [
+            1765138567,
+            969383628,
+            335469,
+            18503798624706
+          ],
+          "ordered_hash": 824152520016067314,
+          "trigger_count": 0,
+          "trigger_sums": [
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "runtime_target": {
+        "baseline": "rust_before",
+        "maximum_time_ratio": 0.6,
+        "minimum_time_reduction": 0.4,
+        "passed": true
+      }
+    },
+    {
+      "name": "rust_stream_columns/65536",
+      "implementations": {
+        "rust_before": {
+          "samples_seconds": [
+            0.021332291,
+            0.020181583,
+            0.019276125,
+            0.019151875,
+            0.019144459
+          ],
+          "mean_seconds": 0.0198172666,
+          "median_seconds": 0.019276125,
+          "min_seconds": 0.019144459,
+          "max_seconds": 0.021332291,
+          "packet_latency_samples": [
+            {
+              "count": 128,
+              "p50": 0.000154792,
+              "p95": 0.000243209,
+              "p99": 0.000347208,
+              "max": 0.00035325
+            },
+            {
+              "count": 128,
+              "p50": 0.000148916,
+              "p95": 0.000200333,
+              "p99": 0.000306875,
+              "max": 0.000400333
+            },
+            {
+              "count": 128,
+              "p50": 0.000146875,
+              "p95": 0.0001685,
+              "p99": 0.000185083,
+              "max": 0.000324333
+            },
+            {
+              "count": 128,
+              "p50": 0.000147042,
+              "p95": 0.000158375,
+              "p99": 0.000202708,
+              "max": 0.000222542
+            },
+            {
+              "count": 128,
+              "p50": 0.000148292,
+              "p95": 0.000159584,
+              "p99": 0.000172208,
+              "max": 0.000173917
+            }
+          ]
+        },
+        "rust_current": {
+          "samples_seconds": [
+            0.012739958,
+            0.009610375,
+            0.010790416,
+            0.010257416,
+            0.009648834
+          ],
+          "mean_seconds": 0.0106093998,
+          "median_seconds": 0.010257416,
+          "min_seconds": 0.009610375,
+          "max_seconds": 0.012739958,
+          "packet_latency_samples": [
+            {
+              "count": 128,
+              "p50": 8.8042e-05,
+              "p95": 0.000147125,
+              "p99": 0.000185291,
+              "max": 0.001141375
+            },
+            {
+              "count": 128,
+              "p50": 7.15e-05,
+              "p95": 9.7458e-05,
+              "p99": 0.00021175,
+              "max": 0.000212666
+            },
+            {
+              "count": 128,
+              "p50": 7.9958e-05,
+              "p95": 0.000114375,
+              "p99": 0.000160375,
+              "max": 0.000269167
+            },
+            {
+              "count": 128,
+              "p50": 7.2792e-05,
+              "p95": 0.000116292,
+              "p99": 0.000194958,
+              "max": 0.000249792
+            },
+            {
+              "count": 128,
+              "p50": 7.2208e-05,
+              "p95": 0.000100083,
+              "p99": 0.000110625,
+              "max": 0.000139208
+            }
+          ]
+        }
+      },
+      "current_speedup_vs": {
+        "rust_before": 1.8792379094306013
+      },
+      "current_time_reduction_vs": {
+        "rust_before": 0.4678693980247586
+      },
+      "event_count": 2858173,
+      "signature": [
+        {
+          "count": 2858173,
+          "sums": [
+            1765138567,
+            969383628,
+            335469,
+            18503798624706
+          ],
+          "ordered_hash": 824152520016067314,
+          "trigger_count": 0,
+          "trigger_sums": [
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "runtime_target": {
+        "baseline": "rust_before",
+        "maximum_time_ratio": 0.6,
+        "minimum_time_reduction": 0.4,
+        "passed": true
+      }
+    },
+    {
+      "name": "python_feed/65536",
+      "implementations": {
+        "rust_before": {
+          "samples_seconds": [
+            0.025712791015394032,
+            0.024227165995398536,
+            0.024428875010926276,
+            0.024145250004949048,
+            0.02533562501776032
+          ],
+          "mean_seconds": 0.024769941408885644,
+          "median_seconds": 0.024428875010926276,
+          "min_seconds": 0.024145250004949048,
+          "max_seconds": 0.025712791015394032,
+          "packet_latency_samples": [
+            {
+              "count": 128,
+              "p50": 0.0001857080205809325,
+              "p95": 0.0002935410011559725,
+              "p99": 0.0004317089915275574,
+              "max": 0.0005444170092232525
+            },
+            {
+              "count": 128,
+              "p50": 0.00018375000217929482,
+              "p95": 0.000224083021748811,
+              "p99": 0.00024408299941569567,
+              "max": 0.00035024998942390084
+            },
+            {
+              "count": 128,
+              "p50": 0.00018170799012295902,
+              "p95": 0.00025845799245871603,
+              "p99": 0.00031900001340545714,
+              "max": 0.0003496249846648425
+            },
+            {
+              "count": 128,
+              "p50": 0.00018204201478511095,
+              "p95": 0.00023133301874622703,
+              "p99": 0.0002992090012412518,
+              "max": 0.00034308299655094743
+            },
+            {
+              "count": 128,
+              "p50": 0.0001855409936979413,
+              "p95": 0.0002663749910425395,
+              "p99": 0.00033337497734464705,
+              "max": 0.0004805000207852572
+            }
+          ]
+        },
+        "rust_current": {
+          "samples_seconds": [
+            0.013128041988238692,
+            0.01286737498594448,
+            0.012724332977086306,
+            0.012617500004125759,
+            0.01264754100702703
+          ],
+          "mean_seconds": 0.012796958192484453,
+          "median_seconds": 0.012724332977086306,
+          "min_seconds": 0.012617500004125759,
+          "max_seconds": 0.013128041988238692,
+          "packet_latency_samples": [
+            {
+              "count": 128,
+              "p50": 9.462499292567372e-05,
+              "p95": 0.00014099999680183828,
+              "p99": 0.00020345801021903753,
+              "max": 0.000301499996567145
+            },
+            {
+              "count": 128,
+              "p50": 9.212500299327075e-05,
+              "p95": 0.00015208299737423658,
+              "p99": 0.0002147920022252947,
+              "max": 0.00029429199639707804
+            },
+            {
+              "count": 128,
+              "p50": 9.275000775232911e-05,
+              "p95": 0.00013625001884065568,
+              "p99": 0.00020433298777788877,
+              "max": 0.0003435830003581941
+            },
+            {
+              "count": 128,
+              "p50": 9.404201409779489e-05,
+              "p95": 0.00012308399891480803,
+              "p99": 0.000207042001420632,
+              "max": 0.0002907089947257191
+            },
+            {
+              "count": 128,
+              "p50": 9.23750048968941e-05,
+              "p95": 0.00013387500075623393,
+              "p99": 0.00017462499090470374,
+              "max": 0.00031270799809135497
+            }
+          ]
+        }
+      },
+      "current_speedup_vs": {
+        "rust_before": 1.9198550568361616
+      },
+      "current_time_reduction_vs": {
+        "rust_before": 0.4791273453486864
+      },
+      "event_count": 2858173,
+      "signature": [
+        {
+          "count": 2858173,
+          "sums": [
+            1765138567,
+            969383628,
+            335469,
+            18503798624706
+          ],
+          "first_timestamp": 6437104,
+          "last_timestamp": 6510968
+        }
+      ],
+      "runtime_target": {
+        "baseline": "rust_before",
+        "maximum_time_ratio": 0.6,
+        "minimum_time_reduction": 0.4,
+        "passed": true
+      }
+    },
+    {
+      "name": "python_full/small",
+      "implementations": {
+        "rust_before": {
+          "samples_seconds": [
+            0.022634000022662804,
+            0.02674387500155717,
+            0.024076249974314123,
+            0.026206250011455268,
+            0.023556791013106704
+          ],
+          "mean_seconds": 0.024643433204619213,
+          "median_seconds": 0.024076249974314123,
+          "min_seconds": 0.022634000022662804,
+          "max_seconds": 0.02674387500155717
+        },
+        "rust_current": {
+          "samples_seconds": [
+            0.02121516701299697,
+            0.00848874999792315,
+            0.009239292005077004,
+            0.008346542017534375,
+            0.00728499999968335
+          ],
+          "mean_seconds": 0.01091495020664297,
+          "median_seconds": 0.00848874999792315,
+          "min_seconds": 0.00728499999968335,
+          "max_seconds": 0.02121516701299697
+        }
+      },
+      "current_speedup_vs": {
+        "rust_before": 2.836253863078144
+      },
+      "current_time_reduction_vs": {
+        "rust_before": 0.6474222519296229
+      },
+      "event_count": 2858123,
+      "signature": [
+        {
+          "count": 2858123,
+          "sums": [
+            1765105916,
+            969372738,
+            335469,
+            18503473076332
+          ],
+          "first_timestamp": 6437104,
+          "last_timestamp": 6510967
+        }
+      ],
+      "workers": 1,
+      "input_bytes": 8388608,
+      "runtime_target": {
+        "baseline": "rust_before",
+        "maximum_time_ratio": 0.6,
+        "minimum_time_reduction": 0.4,
+        "passed": true
+      }
+    },
+    {
+      "name": "python_full/large",
+      "implementations": {
+        "rust_before": {
+          "samples_seconds": [
+            0.9321609589969739,
+            0.9626544580096379,
+            0.9247698329854757,
+            0.9274823750020005,
+            0.9465414170117583
+          ],
+          "mean_seconds": 0.9387218084011693,
+          "median_seconds": 0.9321609589969739,
+          "min_seconds": 0.9247698329854757,
+          "max_seconds": 0.9626544580096379
+        },
+        "rust_current": {
+          "samples_seconds": [
+            0.2737901250075083,
+            0.2709988330025226,
+            0.2838707499904558,
+            0.2733058750163764,
+            0.28574395799660124
+          ],
+          "mean_seconds": 0.27754190820269287,
+          "median_seconds": 0.2737901250075083,
+          "min_seconds": 0.2709988330025226,
+          "max_seconds": 0.28574395799660124
+        }
+      },
+      "current_speedup_vs": {
+        "rust_before": 3.404655149528898
+      },
+      "current_time_reduction_vs": {
+        "rust_before": 0.7062844969369747
+      },
+      "event_count": 116300447,
+      "signature": [
+        {
+          "count": 116300447,
+          "sums": [
+            71875563867,
+            39430950650,
+            13637152,
+            922843050073527
+          ],
+          "first_timestamp": 6437104,
+          "last_timestamp": 9432182
+        }
+      ],
+      "workers": 1,
+      "input_bytes": 341306299,
+      "runtime_target": {
+        "baseline": "rust_before",
+        "maximum_time_ratio": 0.6,
+        "minimum_time_reduction": 0.4,
+        "passed": true
+      }
+    },
+    {
+      "name": "python_full/many_sequential",
+      "implementations": {
+        "rust_before": {
+          "samples_seconds": [
+            0.749157667014515,
+            0.7311288340133615,
+            0.7352489590120967,
+            0.7372818749863654,
+            0.771978125005262
+          ],
+          "mean_seconds": 0.7449590920063202,
+          "median_seconds": 0.7372818749863654,
+          "min_seconds": 0.7311288340133615,
+          "max_seconds": 0.771978125005262
+        },
+        "rust_current": {
+          "samples_seconds": [
+            0.23837266699410975,
+            0.23488154099322855,
+            0.2321420410007704,
+            0.23071166698355228,
+            0.25398158401367255
+          ],
+          "mean_seconds": 0.2380178999970667,
+          "median_seconds": 0.23488154099322855,
+          "min_seconds": 0.23071166698355228,
+          "max_seconds": 0.25398158401367255
+        }
+      },
+      "current_speedup_vs": {
+        "rust_before": 3.138951966462195
+      },
+      "current_time_reduction_vs": {
+        "rust_before": 0.6814223311842947
+      },
+      "event_count": 91444056,
+      "signature": [
+        {
+          "count": 22861014,
+          "sums": [
+            14128113516,
+            7751766724,
+            2679550,
+            153894328154957
+          ],
+          "first_timestamp": 6437104,
+          "last_timestamp": 7026273
+        },
+        {
+          "count": 22861014,
+          "sums": [
+            14128113516,
+            7751766724,
+            2679550,
+            153894328154957
+          ],
+          "first_timestamp": 6437104,
+          "last_timestamp": 7026273
+        },
+        {
+          "count": 22861014,
+          "sums": [
+            14128113516,
+            7751766724,
+            2679550,
+            153894328154957
+          ],
+          "first_timestamp": 6437104,
+          "last_timestamp": 7026273
+        },
+        {
+          "count": 22861014,
+          "sums": [
+            14128113516,
+            7751766724,
+            2679550,
+            153894328154957
+          ],
+          "first_timestamp": 6437104,
+          "last_timestamp": 7026273
+        }
+      ],
+      "workers": 1,
+      "input_bytes": 268435456,
+      "runtime_target": {
+        "baseline": "rust_before",
+        "maximum_time_ratio": 0.6,
+        "minimum_time_reduction": 0.4,
+        "passed": true
+      }
+    },
+    {
+      "name": "python_full/many_parallel",
+      "implementations": {
+        "rust_before": {
+          "samples_seconds": [
+            0.2138868750189431,
+            0.19654454200644977,
+            0.2085152499785181,
+            0.21406020800350234,
+            0.21656816700124182
+          ],
+          "mean_seconds": 0.20991500840173102,
+          "median_seconds": 0.2138868750189431,
+          "min_seconds": 0.19654454200644977,
+          "max_seconds": 0.21656816700124182
+        },
+        "rust_current": {
+          "samples_seconds": [
+            0.11736495798686519,
+            0.12061120799626224,
+            0.11605179100297391,
+            0.12158270800136961,
+            0.11981199998990633
+          ],
+          "mean_seconds": 0.11908453299547546,
+          "median_seconds": 0.11981199998990633,
+          "min_seconds": 0.11605179100297391,
+          "max_seconds": 0.12158270800136961
+        }
+      },
+      "current_speedup_vs": {
+        "rust_before": 1.7851874189310102
+      },
+      "current_time_reduction_vs": {
+        "rust_before": 0.43983472581337657
+      },
+      "event_count": 91444056,
+      "signature": [
+        {
+          "count": 22861014,
+          "sums": [
+            14128113516,
+            7751766724,
+            2679550,
+            153894328154957
+          ],
+          "first_timestamp": 6437104,
+          "last_timestamp": 7026273
+        },
+        {
+          "count": 22861014,
+          "sums": [
+            14128113516,
+            7751766724,
+            2679550,
+            153894328154957
+          ],
+          "first_timestamp": 6437104,
+          "last_timestamp": 7026273
+        },
+        {
+          "count": 22861014,
+          "sums": [
+            14128113516,
+            7751766724,
+            2679550,
+            153894328154957
+          ],
+          "first_timestamp": 6437104,
+          "last_timestamp": 7026273
+        },
+        {
+          "count": 22861014,
+          "sums": [
+            14128113516,
+            7751766724,
+            2679550,
+            153894328154957
+          ],
+          "first_timestamp": 6437104,
+          "last_timestamp": 7026273
+        }
+      ],
+      "workers": 4,
+      "input_bytes": 268435456,
+      "runtime_target": {
+        "baseline": "rust_before",
+        "maximum_time_ratio": 0.6,
+        "minimum_time_reduction": 0.4,
+        "passed": true
+      }
+    },
+    {
+      "name": "python_batches/large",
+      "implementations": {
+        "rust_before": {
+          "samples_seconds": [
+            1.2400045410031453,
+            1.2382520409883,
+            1.2530915419920348,
+            1.248804917006055,
+            1.2387051669938955
+          ],
+          "mean_seconds": 1.2437716415966862,
+          "median_seconds": 1.2400045410031453,
+          "min_seconds": 1.2382520409883,
+          "max_seconds": 1.2530915419920348
+        },
+        "rust_current": {
+          "samples_seconds": [
+            0.3411764159973245,
+            0.33991741700447164,
+            0.3273218339891173,
+            0.33983262500260025,
+            0.3482230409863405
+          ],
+          "mean_seconds": 0.33929426659597084,
+          "median_seconds": 0.33991741700447164,
+          "min_seconds": 0.3273218339891173,
+          "max_seconds": 0.3482230409863405
+        }
+      },
+      "current_speedup_vs": {
+        "rust_before": 3.647958236240754
+      },
+      "current_time_reduction_vs": {
+        "rust_before": 0.7258740546792808
+      },
+      "event_count": 116300447,
+      "signature": [
+        {
+          "count": 116300447,
+          "sums": [
+            71875563867,
+            39430950650,
+            13637152,
+            922843050073527
+          ],
+          "first_timestamp": 6437104,
+          "last_timestamp": 9432182
+        }
+      ],
+      "runtime_target": {
+        "baseline": "rust_before",
+        "maximum_time_ratio": 0.6,
+        "minimum_time_reduction": 0.4,
+        "passed": true
+      }
+    }
+  ],
+  "unavailable": {
+    "prophesee_cpp_python_decode_only": "The unmodified standalone reference exports CSV, not NumPy arrays; no comparable decode-only ratio is reported."
+  },
+  "all_runtime_targets_passed": false
+}

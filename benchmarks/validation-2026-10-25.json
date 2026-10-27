@@ -1,0 +1,107 @@
+{
+  "date": "2026-10-25",
+  "status": "final_validation_and_comparison_complete",
+  "rust_performance_test": "explicitly skipped",
+  "physical_camera_test": "not run; no camera available",
+  "quiet_runtime_acceptance": {
+    "report": "benchmarks/final-results-2026-10-25.json",
+    "status": "complete",
+    "measured_decode_cases": 22,
+    "passed_decode_cases": 13,
+    "missing_runtime_cases": [],
+    "full_runtime_acceptance_passed": false,
+    "original_target_universally_met": false,
+    "missed_cases": [
+      "rust_rows/many_parallel",
+      "rust_columns/many_parallel",
+      "rust_stream_rows/4095",
+      "rust_stream_columns/4095",
+      "rust_stream_rows/8192",
+      "rust_stream_columns/8192",
+      "python_feed/8192",
+      "rust_stream_rows/65536",
+      "python_full/many_parallel"
+    ]
+  },
+  "source_snapshot_sha256": {
+    "evt3-core/src/decoder/parallel.rs": "aeef0420bd2cf21660892c05d7b45271f231cae72dd00390315e803542051f5f",
+    "evt3-core/src/decoder.rs": "953cd89a0472d1dd9ed2dbf3458531a131d86de47871eb04ef969f4860e10679",
+    "evt3-core/src/file_reader.rs": "5c68fd5fe7fc7f49ce609e4bb980ce5e85d9158260ee9106dec63185b1e069b9",
+    "evt3-core/src/hdf5_decoder.rs": "2e8b74f816238e15ca4c738b98ce4cd6d97e3ba8d518fecadda0e155aa257534",
+    "evt3-core/src/lib.rs": "1ad9887618e912888b55f4cf0fabdf8ef9d5e4b26546bfd7022973c237b3420f",
+    "evt3-core/src/output.rs": "a48b94995297d07c3e77023e6b14bb172d8b90033e138b194d4171d253687aa2",
+    "evt3-core/src/parser.rs": "c13dcac06d7fd9873f71c79ed3c7f29bfc67a50356902af4dbe24f40b61b3f35",
+    "evt3-core/src/sink.rs": "542d17b9a30c64049ec50c9a6af89a36fd38d9011d6cd97706caf12a4affc7c8",
+    "evt3-core/src/types.rs": "9ab1b2c6125d1df780db86f73c53b7852dd105d1e3b375c7a1f27aef3bf0a294",
+    "evt3-core/Cargo.toml": "6e9e807fe9167f30b1ee52f60e3b5ff1cc6d9f4fc8468c0ed2345ccdafff3533",
+    "evt3-python/tests/test_evt3.py": "d0050962e1b1eb667e6733284e38771635873f1c23a8a92d84eb997f7ad2f16a",
+    "benchmarks/comparison_suite.py": "5f871f43c75ef159ca2b227a2fd50a52a23167636d03375347df923c6ce94555",
+    "benchmarks/benchmark.py": "d9f332688bbc76d67fc650091fe6150db035b09c1e4c8b99e31cd8acc414b7d1",
+    "tests/test_benchmark.py": "a124f6815873aee4e9ca85095c29b0760d4025b7e15088b49110fb60ec072b2c"
+  },
+  "checks": [
+    {
+      "name": "rust_hdf5_and_real_files",
+      "result": "passed",
+      "passed_counts": [
+        43,
+        15,
+        2
+      ],
+      "log": "/private/tmp/evt3-final-correctness.log"
+    },
+    {
+      "name": "rust_address_sanitizer",
+      "result": "passed",
+      "passed_counts": [
+        41
+      ],
+      "log": "/private/tmp/evt3-final-asan.log"
+    },
+    {
+      "name": "clippy_all_targets_with_hdf5",
+      "result": "passed",
+      "log": "/private/tmp/evt3-final-clippy.log"
+    },
+    {
+      "name": "rust_1_83_python_check",
+      "result": "passed",
+      "log": "/private/tmp/evt3-final-msrv.log"
+    },
+    {
+      "name": "python_functional",
+      "result": "passed",
+      "passed": 23,
+      "skipped": 3,
+      "skip_reason": "free-threaded interpreter tests on standard CPython 3.13",
+      "log": "/private/tmp/evt3-final-python-tests.log"
+    },
+    {
+      "name": "benchmark_regressions",
+      "result": "passed",
+      "passed": 16,
+      "log": "/private/tmp/evt3-final-benchmark-tests.log"
+    },
+    {
+      "name": "cargo_fmt",
+      "result": "passed"
+    },
+    {
+      "name": "git_diff_check",
+      "result": "passed"
+    }
+  ],
+  "python_extension_sha256": "4853f13fd248962baa295b914fd753b819af48045821c167849cb281fcd254c9",
+  "runtime_measurement_context": "Final run started after the user confirmed the machine was sufficiently free; optimization stopped at the user request.",
+  "optimization_status": "stopped_at_user_request_with_selected_best_available_implementation",
+  "python_extension_matches_final_maturin_build": true,
+  "performance_benchmarks_run_after_user_confirmed_machine_free": true,
+  "final_comparison_sha256": "5579292aa6b88cb2d3b1e459f98d15ebe738f9098a32c80f3bdbd01b90992208",
+  "report_curation": {
+    "date": "2026-10-26",
+    "consumer_specific_entries_removed": true,
+    "decoder_measurements_changed": false,
+    "original_report_sha256": "cfe34a64f014464be494f5f2e1c76779f63bb53cd19dedcd8ffb243258832b8c",
+    "note": "Application-specific integration checks and connector source-map entries were removed. Remaining validation and provenance describe the original measured source snapshot; this curation is not a new test or benchmark run."
+  }
+}

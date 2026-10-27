@@ -1,0 +1,165 @@
+{
+  "date": "2026-10-25",
+  "status": "checks_passed",
+  "rust_default": "Off",
+  "python_and_cli_default": "Auto",
+  "optional_cargo_feature": "parallel",
+  "generic_sink_execution": "serial",
+  "core_normal_dependencies_without_parallel": "evt3 v0.4.0 (evt3-core)\n\u251c\u2500\u2500 byteorder v1.5.0\n\u2514\u2500\u2500 thiserror v1.0.69\n    \u2514\u2500\u2500 thiserror-impl v1.0.69 (proc-macro)\n        \u251c\u2500\u2500 proc-macro2 v1.0.104\n        \u2502   \u2514\u2500\u2500 unicode-ident v1.0.22\n        \u251c\u2500\u2500 quote v1.0.42\n        \u2502   \u2514\u2500\u2500 proc-macro2 v1.0.104 (*)\n        \u2514\u2500\u2500 syn v2.0.111\n            \u251c\u2500\u2500 proc-macro2 v1.0.104 (*)\n            \u251c\u2500\u2500 quote v1.0.42 (*)\n            \u2514\u2500\u2500 unicode-ident v1.0.22\n",
+  "source_sha256": {
+    "Cargo.toml": "f78af503873702945993dd9b4b20a080f58bbdaf012a73ccacc76beb8b74b1f8",
+    "evt3-core/Cargo.toml": "526d171f9ad94c26b3fad9347aea2195b7be5bdac177c6be0754c31decd8bffa",
+    "evt3-core/src/decoder/counts.rs": "27be2a28c022cada384d514c7d21840f288898af2e07590f8ba6108104e1c1cf",
+    "evt3-core/src/decoder/parallel.rs": "da9030154832cbc46abf3334110dafa982afedb978f51b697b71a0c490e87c0a",
+    "evt3-core/src/decoder.rs": "41c2032e1a64432e7a8e2593c9e3bc7078571c9660799f992338fe1f932a9745",
+    "evt3-core/src/file_reader.rs": "eb46efd512b1a8ff9aac3145b78360dcabb7119f7fe125ae60250579c3695482",
+    "evt3-core/src/hdf5_decoder.rs": "2e8b74f816238e15ca4c738b98ce4cd6d97e3ba8d518fecadda0e155aa257534",
+    "evt3-core/src/lib.rs": "e1d69ec1510aed428a26ddd78f400d38dec06ac6c28af63d1ac015fb49ee96c0",
+    "evt3-core/src/output.rs": "a48b94995297d07c3e77023e6b14bb172d8b90033e138b194d4171d253687aa2",
+    "evt3-core/src/parser.rs": "c13dcac06d7fd9873f71c79ed3c7f29bfc67a50356902af4dbe24f40b61b3f35",
+    "evt3-core/src/sink.rs": "1b7df58a719c7b0162b0fb4e812220dbfa6a2707f4943b0d12f2e377d5044c77",
+    "evt3-core/src/types.rs": "9ab1b2c6125d1df780db86f73c53b7852dd105d1e3b375c7a1f27aef3bf0a294",
+    "evt3-cli/Cargo.toml": "3db7bc8525e7c1639108f8d3e83719008beaea41c40974f6e7c111abea6c597f",
+    "evt3-cli/src/main.rs": "71fdcb4be70d88ea3d7b0da77b3573052edd8aad9f3a442be56e3d738ff297e0",
+    "evt3-python/Cargo.toml": "b79535522e115b162a50200cce7546d8498051df429963af81865fb424b1e2d7",
+    "evt3-python/src/lib.rs": "4a1b2494b1004901f4e49e1b81b703cd7318c749b132c544df963deff60f38b4",
+    "evt3-python/python/evt3/__init__.py": "dd9443b3e2c50fe90648332244c9b2bec1a6a4b779fac43d1de1ff22430d5004",
+    "evt3-python/python/evt3/events.py": "ad07a5dd8fc73818cfbe6cb8073563aa73783bcec6d08b4776fbd9f1c2d4ba38"
+  },
+  "checks": [
+    {
+      "name": "core_without_parallel",
+      "result": "passed",
+      "counts": 40,
+      "log": "/private/tmp/evt3-explicit-off-tests.log",
+      "log_sha256": "925e197811d469d97c5baa51a64f61c8d8486662601319ce3a8d08093af8e28e"
+    },
+    {
+      "name": "core_with_parallel",
+      "result": "passed",
+      "counts": 44,
+      "log": "/private/tmp/evt3-explicit-on-tests.log",
+      "log_sha256": "5ffd055619dfbf147c8b60e676decda2466ac886919e3e2f13aa7aa44130afa6"
+    },
+    {
+      "name": "hdf5_parallel_release",
+      "result": "passed",
+      "counts": [
+        46,
+        15,
+        1,
+        2
+      ],
+      "log": "/private/tmp/evt3-explicit-hdf5-tests.log",
+      "log_sha256": "708a157ac69008e059dea6a1e4d6a62212ab973942bef765f03ed5eecbf03dbb"
+    },
+    {
+      "name": "address_sanitizer_parallel",
+      "result": "passed",
+      "counts": 44,
+      "log": "/private/tmp/evt3-explicit-asan.log",
+      "log_sha256": "09cef5da4cd742be8c14f5313d2c0a83b5cc766610b17ee4f3280ae8fabab6c7"
+    },
+    {
+      "name": "python_parallel",
+      "result": "passed",
+      "counts": {
+        "passed": 28,
+        "skipped": 4
+      },
+      "log": "/private/tmp/evt3-explicit-python-tests.log",
+      "log_sha256": "6d4e748d9a154f64bd92d19c380cb652fe7e4e114fde42a81b425214764679c4"
+    },
+    {
+      "name": "python_no_parallel",
+      "result": "passed",
+      "counts": {
+        "passed": 27,
+        "skipped": 5
+      },
+      "log": "/private/tmp/evt3-explicit-python-off-tests.log",
+      "log_sha256": "57919656f0fafe206be0ff03bca08a1be40ea7aab9de12692efcd31d80c2769f"
+    },
+    {
+      "name": "benchmark_regressions",
+      "result": "passed",
+      "counts": 18,
+      "log": "/private/tmp/evt3-explicit-benchmark-tests.log",
+      "log_sha256": "491591edf4400eceefb9dec79a6ab9d5501f4d5249d52f25d26d58d3581f3295"
+    },
+    {
+      "name": "clippy_parallel_hdf5",
+      "result": "passed",
+      "counts": null,
+      "log": "/private/tmp/evt3-explicit-clippy.log",
+      "log_sha256": "ff828dcd67adce43a779745effcc8d896609b5db7406550e8e0f9e1499b4dcd9"
+    },
+    {
+      "name": "clippy_core_no_parallel",
+      "result": "passed",
+      "counts": null,
+      "log": "/private/tmp/evt3-explicit-off-clippy.log",
+      "log_sha256": "afdba5cea7ccb062d6b14079a386524d0144f9f55118586afa93564a72eeece6"
+    },
+    {
+      "name": "rust_1_83_python_check",
+      "result": "passed",
+      "counts": null,
+      "log": "/private/tmp/evt3-explicit-msrv.log",
+      "log_sha256": "4cfd3a011b4b56859644072ba801ad886fcfd27cbd5336da8109a969b2878199"
+    },
+    {
+      "name": "cargo_fmt",
+      "result": "passed"
+    },
+    {
+      "name": "git_diff_check",
+      "result": "passed"
+    },
+    {
+      "name": "source_hashes_and_report_links",
+      "result": "passed"
+    },
+    {
+      "name": "public_python_keyword_only_threads_all_eight_entry_points",
+      "result": "passed"
+    }
+  ],
+  "cli_check": {
+    "status": "passed",
+    "csv_sha256": "462c94222668a106cbf0e5de07364ba58d8ddf60ca9632cf218e8bccbaaaa8eb",
+    "feature_on_threads": [
+      0,
+      1,
+      2,
+      4
+    ],
+    "feature_off_threads": [
+      0,
+      1
+    ],
+    "feature_off_explicit_multiple_threads": "rejected"
+  },
+  "measurement_reports": {
+    "serial": {
+      "path": "benchmarks/parallelism-serial-results-2026-10-25.json",
+      "sha256": "d27d71e9c26b82ffa3c26b536bac741bb7afd51d0246e44a9107f2f14e532823",
+      "measured_cases": 12,
+      "full_acceptance_run": false
+    },
+    "auto": {
+      "path": "benchmarks/parallelism-auto-results-2026-10-25.json",
+      "sha256": "7c8312374152006673674e35ca22e847238a21d2a16e5246bc43453434c5ba44",
+      "measured_cases": 12,
+      "full_acceptance_run": false
+    }
+  },
+  "report_curation": {
+    "date": "2026-10-26",
+    "consumer_specific_entries_removed": true,
+    "decoder_measurements_changed": false,
+    "original_report_sha256": "45e0106491a3f83537b4dfe71cbb0d66bf5a91b3d7b463cf4c3b9c7095e3215e",
+    "note": "Application-specific integration checks and connector source-map entries were removed. Remaining validation and provenance describe the original measured source snapshot; this curation is not a new test or benchmark run.",
+    "measurement_report_hashes": "Updated to the curated decoder-only reports; original manifest hashes are preserved in the archived original."
+  }
+}

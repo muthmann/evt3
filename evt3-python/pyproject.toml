@@ -4,8 +4,8 @@ build-backend = "maturin"
 
 [project]
 name = "evt3"
-version = "0.4.1"
-description = "High-performance EVT 3.0 decoder for Prophesee event cameras"
+version = "0.5.0"
+description = "Highly optimized EVT 3.0 decoder for Prophesee event cameras, with NumPy output"
 readme = "README.md"
 license = { text = "MIT" }
 authors = [{ name = "Uthmann", email = "mika.uthmann@uni-bielefeld.de" }]

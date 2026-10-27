@@ -4,7 +4,7 @@ version.workspace = true
 edition = "2021"
 authors = ["Mika Uthmann <muthmann@physik.uni-bielefeld.de>"]
 license = "MIT"
-description = "Fast EVT3 (EVT 3.0) decoder library for Prophesee and Metavision event cameras. Decodes .raw and HDF5 event data for event-based vision and neuromorphic research."
+description = "Highly optimized EVT3 (EVT 3.0) decoder library for Prophesee and Metavision event cameras, with optional parallel decoding. Decodes .raw and HDF5 event data for event-based vision and neuromorphic research."
 readme = "../README.md"
 homepage = "https://github.com/muthmann/evt3"
 repository = "https://github.com/muthmann/evt3"
@@ -15,10 +15,12 @@ categories = ["parser-implementations", "encoding", "science"]
 [features]
 default = []
 hdf5 = ["dep:hdf5"]
+parallel = ["dep:rayon"]
 
 [dependencies]
 thiserror = "1.0"
 byteorder = "1.5"
+rayon = { version = "1.11", optional = true }
 hdf5 = { package = "hdf5-metno", version = "0.12.3", optional = true }
 
 [dev-dependencies]
@@ -28,3 +30,7 @@ criterion = { version = "0.5", features = ["html_reports"] }
 [[bench]]
 name = "decode_benchmark"
 harness = false
+
+[package.metadata.docs.rs]
+# HDF5 needs a native library that docs.rs does not provide.
+features = ["parallel"]

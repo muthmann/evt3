@@ -7,6 +7,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-27
+
+### Added
+
+- Optional parallel decoding. The `parallel` Cargo feature adds
+  `Parallelism::{Off, Auto, Threads(n)}`, set with
+  `Evt3Decoder::with_parallelism` / `set_parallelism` and
+  `EventFileReader::with_parallelism`. Only large even byte chunks (64 KiB or
+  more) use workers. Each decoder owns its pool; there is no global pool.
+- New concrete column APIs `decode_bytes_columns` and
+  `EventFileReader::read_next_columns` that follow the configured policy.
+- Python: keyword-only `threads=` on every decoding function and
+  decoder/iterator constructor, and `evt3.PARALLEL_ENABLED`.
+- CLI: `--threads` (0 = Auto, 1 = serial, n = total thread cap).
+- A unified benchmark suite that compares the official Prophesee C++ sample,
+  a selected pre-change Rust commit and the current decoder, with packet
+  latency samples, input/binary hashes and machine-readable results.
+
+### Changed
+
+- Faster serial decoding: byte conversion is fused with decoding, initial
+  timestamp synchronization moved out of the main loop, complete 12/12/8-bit
+  vector groups are expanded together, and built-in outputs are written in
+  bounded batches with counted reservations.
+- Defaults: the Rust library decodes serially (`Parallelism::Off`); Python and
+  the CLI select Auto. Generic `EventSink` APIs (`decode_bytes_into`,
+  `decode_file_into`, `decode_buffer_into`) always decode serially.
+- Rayon is an optional dependency. Builds without `parallel` keep all serial
+  speedups.
+- Whole-file decoding of a 325 MiB recording (116 M events) into NumPy takes
+  0.30 s instead of 1.11 s (3.7x, about 390 M events/s with Auto on 8 logical
+  CPUs). Without workers, decoding is about 1.4–1.8x faster than 0.4.
+- CSV export is 1.73x faster than Prophesee's official standalone C++ sample,
+  with byte-identical output. See [benchmarks](benchmarks/README.md).
+
+### Removed
+
+- **BREAKING (Python API):** removed the application-specific event publishing
+  connector and its package-level export. The package now provides decoding
+  and NumPy event containers; applications must supply their own publishing
+  transport. Existing decoding and `Events.from_arrays(...)` APIs remain.
+
+### Fixed
+
+- Removed cross-workflow speedup ratios from the legacy benchmark summary;
+  Python decode-to-memory and CLI CSV export perform different work.
+
 ## [0.4.1] - 2026-10-24
 
 ### Fixed

@@ -15,8 +15,9 @@ name = "evt3_python"
 crate-type = ["cdylib"]
 
 [features]
-default = []
+default = ["parallel"]
 hdf5 = ["evt3/hdf5"]
+parallel = ["evt3/parallel"]
 
 [dependencies]
 evt3 = { workspace = true }

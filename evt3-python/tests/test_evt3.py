@@ -1,9 +1,6 @@
 """Tests for evt3 Python bindings."""
 
-import json
-import socket
 import struct
-import threading
 
 import pytest
 import numpy as np
@@ -129,6 +126,28 @@ class TestDecodeBytes:
         assert np.array_equal(np.concatenate([batch.y for batch in batches]), expected.y)
         assert np.array_equal(np.concatenate([batch.p for batch in batches]), expected.p)
         assert np.array_equal(np.concatenate([batch.t for batch in batches]), expected.t)
+
+    def test_parallel_feed_keeps_returned_arrays_stable(self, synthetic_evt3_bytes):
+        """Parallel packets and odd scalar packets produce identical arrays."""
+        import evt3
+
+        data = synthetic_evt3_bytes * 8193
+        scalar = evt3.Decoder()
+        expected = [scalar.feed(data[i:i + 4095]) for i in range(0, len(data), 4095)]
+        scalar.finish()
+
+        decoder = evt3.Decoder()
+        first = decoder.feed(data[:65536])
+        retained = {name: getattr(first, name).copy() for name in ("x", "y", "p", "t")}
+        second = decoder.feed(data[65536:])
+        decoder.finish()
+        decoder.reset()
+        decoder.feed(data)  # Previous arrays must outlive further decode work.
+        for name in retained:
+            assert np.array_equal(getattr(first, name), retained[name])
+            actual = np.concatenate([getattr(first, name), getattr(second, name)])
+            reference = np.concatenate([getattr(batch, name) for batch in expected])
+            assert np.array_equal(actual, reference)
 
     def test_file_batch_iterator_matches_decode_file(self, synthetic_evt3_bytes, tmp_path):
         """The optional bounded-memory workflow preserves the old API result."""
@@ -308,128 +327,81 @@ class TestEventsFromArrays:
             )
 
 
-class FakeAugurServer:
-    """Tiny protocol-v1 test server."""
-
-    def __init__(self, *, max_chunk_events=1_048_576):
-        self.max_chunk_events = max_chunk_events
-        self.messages = []
-        self.payloads = []
-        self._ready = threading.Event()
-        self._thread = threading.Thread(target=self._serve, daemon=True)
-        self._listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self._listener.bind(("127.0.0.1", 0))
-        self._listener.listen(1)
-        self.port = self._listener.getsockname()[1]
-
-    def __enter__(self):
-        self._thread.start()
-        self._ready.wait(timeout=2)
-        return self
-
-    def __exit__(self, exc_type, exc, tb):
-        self._thread.join(timeout=2)
-        self._listener.close()
-
-    def _serve(self):
-        self._ready.set()
-        conn, _addr = self._listener.accept()
-        with conn:
-            file = conn.makefile("rwb", buffering=0)
-            hello = self._read_json(file)
-            self.messages.append(hello)
-            self._write_json(
-                file,
-                {
-                    "type": "hello_ok",
-                    "protocol": 1,
-                    "server": "augur",
-                    "max_chunk_events": self.max_chunk_events,
-                },
-            )
-
-            start = self._read_json(file)
-            self.messages.append(start)
-            self._write_json(file, {"type": "start_ok"})
-
-            while True:
-                message = self._read_json(file)
-                self.messages.append(message)
-                if message["type"] == "finish_events":
-                    self._write_json(file, {"type": "finish_ok"})
-                    return
-                assert message["type"] == "event_batch"
-                payload = file.read(message["bytes"])
-                self.payloads.append(payload)
-                self._write_json(file, {"type": "batch_ok", "events": message["events"]})
-
-    @staticmethod
-    def _read_json(file):
-        return json.loads(file.readline().decode("utf-8"))
-
-    @staticmethod
-    def _write_json(file, message):
-        file.write(json.dumps(message).encode("utf-8") + b"\n")
-
-
-class TestAugurConnector:
-    """Tests for the Python-to-Augur connector protocol."""
-
-    def test_publish_events_sends_chunked_packed_records(self):
+class TestParallelism:
+    @pytest.mark.parametrize("threads", [0, 1, 2, 4])
+    def test_every_entry_point_respects_threads_and_preserves_outputs(
+        self, synthetic_evt3_bytes, tmp_path, threads
+    ):
         import evt3
 
-        events = evt3.Events.from_arrays(
-            x=np.array([1, 2, 3, 4, 5], dtype=np.uint16),
-            y=np.array([10, 20, 30, 40, 50], dtype=np.uint16),
-            p=np.array([0, 1, 0, 1, 1], dtype=np.uint8),
-            t=np.array([100, 200, 300, 400, 500], dtype=np.uint64),
-            geometry=(1280, 720),
-        )
+        if threads > 1 and not evt3.PARALLEL_ENABLED:
+            pytest.skip("parallel feature disabled")
+        payload = (synthetic_evt3_bytes + struct.pack("<H", 0xA301)) * 8192
+        path = tmp_path / "thread-policy.raw"
+        path.write_bytes(payload)
+        expected, expected_triggers = evt3.decode_file_with_triggers(str(path), threads=1)
 
-        with FakeAugurServer(max_chunk_events=3) as server:
-            evt3.augur.publish_events(
-                events,
-                port=server.port,
-                name="unit-test",
-                chunk_events=2,
+        def check(events):
+            for field in ("x", "y", "p", "t"):
+                np.testing.assert_array_equal(getattr(events, field), getattr(expected, field))
+
+        check(evt3.decode_bytes(payload, threads=threads))
+        check(evt3.decode_file(str(path), threads=threads))
+        actual, triggers = evt3.decode_file_with_triggers(str(path), threads=threads)
+        check(actual)
+        for field in ("value", "id", "timestamp"):
+            np.testing.assert_array_equal(getattr(triggers, field), getattr(expected_triggers, field))
+
+        decoder = evt3.Decoder(threads=threads)
+        # Include both an eligible even chunk and odd carried-byte boundaries.
+        packets = [payload[:65536]] + [payload[i:i + 4095] for i in range(65536, len(payload), 4095)]
+        retained = [decoder.feed(packet) for packet in packets]
+        decoder.finish()
+        for field in ("x", "y", "p", "t"):
+            np.testing.assert_array_equal(
+                np.concatenate([getattr(events, field) for events in retained]),
+                getattr(expected, field),
+            )
+        decoder.reset()
+        check(decoder.feed(payload))
+        decoder.finish()
+
+        for reader in (
+            evt3.decode_file_batches(str(path), 65536, threads=threads),
+            evt3.FileDecoder(str(path), 65536, threads=threads),
+        ):
+            batches = list(reader)
+            for field in ("x", "y", "p", "t"):
+                np.testing.assert_array_equal(
+                    np.concatenate([getattr(events, field) for events in batches]),
+                    getattr(expected, field),
+                )
+        for reader in (
+            evt3.decode_file_batches_with_triggers(str(path), 65536, threads=threads),
+            evt3.FileDecoderWithTriggers(str(path), 65536, threads=threads),
+        ):
+            batches = list(reader)
+            np.testing.assert_array_equal(
+                np.concatenate([events.t for events, _ in batches]), expected.t
+            )
+            np.testing.assert_array_equal(
+                np.concatenate([triggers.timestamp for _, triggers in batches]),
+                expected_triggers.timestamp,
             )
 
-        assert [m["type"] for m in server.messages] == [
-            "hello",
-            "start_events",
-            "event_batch",
-            "event_batch",
-            "event_batch",
-            "finish_events",
-        ]
-        assert server.messages[1]["name"] == "unit-test"
-        assert server.messages[1]["geometry"] == [1280, 720]
-        assert server.messages[1]["event_count"] == 5
-        assert [m["events"] for m in server.messages if m["type"] == "event_batch"] == [
-            2,
-            2,
-            1,
-        ]
-
-        payload = b"".join(server.payloads)
-        assert len(payload) == 5 * evt3.augur.PACKED_EVENT_RECORD_BYTES
-        first = struct.unpack_from("<HHBBQ", payload, 0)
-        last = struct.unpack_from("<HHBBQ", payload, 4 * evt3.augur.PACKED_EVENT_RECORD_BYTES)
-        assert first == (1, 10, 0, 0, 100)
-        assert last == (5, 50, 1, 0, 500)
-
-    def test_publish_events_rejects_float_dtype(self):
+    def test_negative_threads_are_rejected(self):
         import evt3
 
-        with pytest.raises(TypeError, match="got float32"):
-            evt3.augur.publish_events(
-                x=np.array([1], dtype=np.float32),
-                y=np.array([1], dtype=np.uint16),
-                p=np.array([1], dtype=np.uint8),
-                t=np.array([1], dtype=np.uint64),
-                geometry=(1280, 720),
-                port=1,
-            )
+        with pytest.raises((ValueError, OverflowError)):
+            evt3.Decoder(threads=-1)
+
+    def test_disabled_feature_rejects_explicit_worker_request(self):
+        import evt3
+
+        if evt3.PARALLEL_ENABLED:
+            pytest.skip("requires a build without the parallel feature")
+        with pytest.raises(ValueError, match="parallel"):
+            evt3.Decoder(threads=2)
 
 
 class TestPandasIntegration:

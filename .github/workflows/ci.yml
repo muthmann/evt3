@@ -43,7 +43,13 @@ jobs:
         run: cargo build -p evt3 -p evt3-cli
       
       - name: Run unit tests
-        run: cargo test -p evt3 --lib
+        run: cargo test -p evt3 --lib --no-default-features
+
+      - name: Check library without Rayon
+        run: cargo clippy --all-targets -p evt3 --no-default-features -- -D warnings
+
+      - name: Test explicit parallel APIs and CLI
+        run: cargo test -p evt3 -p evt3-cli --lib --bins --features parallel
 
   rust-tests-hdf5:
     name: Rust Tests (HDF5 feature)
@@ -144,3 +150,17 @@ jobs:
         run: |
           source .venv/bin/activate
           pytest tests/ -v -k "not TestDecodeFile"
+
+      - name: Test benchmark comparison and validation
+        working-directory: evt3-python
+        run: |
+          source .venv/bin/activate
+          python -m unittest discover -s ../tests -p test_benchmark.py -v
+
+      - name: Verify Python without the parallel feature
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.13'
+        working-directory: evt3-python
+        run: |
+          source .venv/bin/activate
+          maturin develop --no-default-features
+          pytest tests/test_evt3.py -v -k TestParallelism
