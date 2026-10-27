@@ -34,7 +34,6 @@ cargo add evt3           # Rust library
 - 🧵 **Explicit Parallelism** - serial by default in Rust; Python and CLI use up to four threads and accept `threads=1` / `--threads 1`
 - 📦 **Multiple Interfaces** - CLI tool, Python bindings, Rust library
 - 🐍 **NumPy-native Python** - stable `Events` arrays for analysis without clone-on-access surprises
-- 🔭 **AugurRS Ingress** - publish decoded or transformed NumPy event arrays into [AugurRS](https://github.com/muthmann/augur-rs) for interactive preview, 3D inspection, viewer tools, and plugin workflows
 - 🧪 **Optional HDF5 Input** - `.h5` and `.hdf5` support behind a cargo feature
 - ✅ **Validated** - Checked CSV output matches Prophesee's C++ sample byte for byte, serial and parallel
 - 🔧 **Customizable** - Configurable output field order
@@ -210,36 +209,10 @@ for raw_chunk in camera_chunks:
 decoder.finish()
 ```
 
-### Python To AugurRS
+### Construct Python Events From Arrays
 
-`evt3` can publish decoded or transformed NumPy event arrays into a running
-[AugurRS](https://github.com/muthmann/augur-rs) session. This makes Python a
-lightweight analysis and filtering environment while AugurRS provides the
-interactive event-camera application: live-style preview, 3D raw-event
-inspection, viewer tools, exports, and plugins.
-
-```python
-import evt3
-
-events = evt3.decode_file("recording.raw")
-
-# Optional Python-side filtering or analysis.
-x = events.x
-y = events.y
-p = events.p
-t = events.t
-
-evt3.augur.publish_events(
-    x=x,
-    y=y,
-    p=p,
-    t=t,
-    geometry=events.sensor_size,
-    name="recording-analysis-window",
-)
-```
-
-You can also create an `Events` container from existing NumPy arrays:
+Use the same `Events` model for decoded data and arrays produced by your own
+analysis:
 
 ```python
 events = evt3.Events.from_arrays(
@@ -250,22 +223,11 @@ events = evt3.Events.from_arrays(
     geometry=(1280, 720),
     copy=False,
 )
-
-evt3.augur.publish_events(events, name="filtered-events")
 ```
 
-For repeated sends, reuse the loopback session:
-
-```python
-with evt3.augur.connect() as augur:
-    augur.publish_events(events, name="raw")
-    augur.publish_events(filtered_events, name="filtered")
-```
-
-The first ingress stage is deliberately copy-based and bounded: event chunks
-are packed into AugurRS' 14-byte `packed_xypt_v1` decoded-event transport and
-sent over loopback TCP. The connector validates dtype, shape, geometry, and
-timestamp ordering before sending so mistakes fail close to the Python code.
+The constructor validates shape, dtype, coordinate bounds, polarity, and
+nondecreasing microsecond timestamps. See [Python NumPy Events](docs/features/python-events.md)
+for the array contract and normalization options.
 
 ### Rust Library
 
@@ -457,6 +419,12 @@ evt3/
 ├── docs/            # Feature documentation and ADRs
 └── test_data/       # Local recordings for benchmarks (not in git)
 ```
+
+## Related Projects
+
+- [AugurRS](https://github.com/muthmann/augur-rs) — an event camera workbench
+  to record, replay, and analyze event streams, with linked 2D and 3D views
+  and a plugin API.
 
 ## Contributing
 

@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.5.0] - 2026-10-25
+## [0.5.0] - 2026-10-27
 
 ### Added
 
@@ -41,6 +41,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   CPUs). Without workers, decoding is about 1.4–1.8x faster than 0.4.
 - CSV export is 1.73x faster than Prophesee's official standalone C++ sample,
   with byte-identical output. See [benchmarks](benchmarks/README.md).
+
+### Removed
+
+- **BREAKING (Python API):** removed the application-specific event publishing
+  connector and its package-level export. The package now provides decoding
+  and NumPy event containers; applications must supply their own publishing
+  transport. Existing decoding and `Events.from_arrays(...)` APIs remain.
 
 ### Fixed
 

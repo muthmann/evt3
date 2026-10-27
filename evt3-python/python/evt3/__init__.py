@@ -28,7 +28,6 @@ Example:
 
 from importlib.metadata import PackageNotFoundError, version as _package_version
 
-from . import augur
 from ._evt3 import (
     Decoder as _Decoder,
     PARALLEL_ENABLED,
@@ -189,5 +188,4 @@ __all__ = [
     "FileDecoderWithTriggers",
     "Events",
     "TriggerEvents",
-    "augur",
 ]

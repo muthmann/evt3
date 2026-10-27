@@ -44,6 +44,26 @@ for raw_chunk in camera_chunks:
 decoder.finish()
 ```
 
+## Timestamp Contract
+
+CD events and external trigger events carry native sensor timestamps in
+microseconds. One decoder maintains a shared timestamp epoch for both event
+types and extends the sensor's 24-bit clock across observed wraps
+(`2^24` microseconds, about 16.78 seconds). Output timestamps already include
+those observed wrap epochs; consumers must not apply another modulo-clock
+unwrap to them.
+
+Keep the same decoder state across consecutive chunks of one stream. Resetting
+or constructing a decoder starts a new history. Starting at a byte offset in
+the middle of a recording can synchronize to later time words, but cannot
+infer how many clock wraps occurred before that offset or recover other state
+that was never supplied. Decode from the beginning when the full recording
+epoch is required.
+
+Consumers own any alignment to wall time, another device clock, or an external
+recording epoch. Apply that mapping consistently to CD and trigger timestamps.
+The decoder does not infer missing history or an external clock offset.
+
 ## Verification
 
 - `cargo test -p evt3` — unit tests cover byte-by-byte, odd-chunk, and

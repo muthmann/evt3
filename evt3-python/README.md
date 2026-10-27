@@ -141,20 +141,6 @@ events = evt3.Events.from_arrays(
 )
 ```
 
-### Publish to AugurRS
-
-Send decoded or filtered arrays into a running
-[AugurRS](https://github.com/muthmann/augur-rs) session for interactive
-preview, 3D raw-event inspection, and viewer tools:
-
-```python
-evt3.augur.publish_events(events, name="recording-analysis-window")
-
-with evt3.augur.connect() as augur:
-    augur.publish_events(events, name="raw")
-    augur.publish_events(filtered_events, name="filtered")
-```
-
 ## Command-line tool
 
 The same decoder ships as a standalone CLI that converts `.raw` to CSV or a
